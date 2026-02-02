@@ -1,0 +1,28 @@
+spring:
+  application:
+    name: seolstudy-backend
+  datasource:
+    #Mysql Driver 설정
+    #DB_HOST : host 주소, 로컬에서 사용 시 설정 필요없음 | DB_NAME 로컬에서 사용할 DB 이름
+    #Mysql 외 Oracle, H2, Firebase와 같은 다른 DB 사용 시 아래 3줄은 삭제 후 알맞는 드라이버로 변경하시면 됩니다.
+    url: jdbc:mysql://${DB_HOST:localhost}:3306/${DB_NAME}?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+    username: ${DB_USERNAME} #DB에서 사용중인 유저 이름
+    password: ${DB_PASSWORD} #DB에서 사용중인 비밀번호
+  #DB 관련 설정
+  jpa:
+    hibernate:
+      ddl-auto: none #JPA의 DB 수정 방지
+    show-sql: true #실행되는 쿼리를 콘솔에 출력
+    properties:
+      hibernate:
+        format_sql: true #실행되는 쿼리를 정렬해서 보여줌
+  #pdf 파일 저장을 위한 AWS S3 버킷 관련 설정
+  cloud:
+    aws:
+      s3:
+        bucket: ${S3_BUCKET_NAME} # 버킷 이름
+      region:
+        static: ap-northeast-2 # 서울 리전
+      credentials:
+        access-key: ${AWS_ACCESS_KEY}
+        secret-key: ${AWS_SECRET_KEY}

@@ -37,10 +37,12 @@ out/
 .vscode/
 
 ### Envirment variables ###
-/application-aws.yaml
-/application-aws.yml
-/application-prod.yaml
-/application-prod.yml
+**/application-aws.yaml
+**/application-aws.yml
+**/application-prod.yaml
+**/application-prod.yml
+**/application-jwt.yaml
+**/application-jwt.yml
 
 ### MacOS ###
 .DS_Store

@@ -22,6 +22,9 @@ import java.time.LocalDate;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import com.seolstudy.seolstudy_backend.mentee.dto.DailyTaskResponse;
+import java.util.Collections;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -54,7 +57,12 @@ class MenteeControllerTest {
         ReflectionTestUtils.setField(request, "date", LocalDate.of(2025, 1, 27));
         ReflectionTestUtils.setField(request, "subject", Subject.MATH);
 
-        TaskResponse response = new TaskResponse(1L, "Test Task", LocalDate.of(2025, 1, 27), Subject.MATH, false);
+        TaskResponse response = TaskResponse.builder()
+                .id(1L)
+                .title("Test Task")
+                .subject(Subject.MATH)
+                .isMentorAssigned(false)
+                .build();
 
         given(securityUtil.getCurrentUserId()).willReturn(menteeId); // Stub SecurityUtil
         given(menteeService.addTask(eq(menteeId), any(TaskRequest.class))).willReturn(response);
@@ -80,5 +88,38 @@ class MenteeControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest()); // Expect 400
+    }
+
+    @Test
+    @DisplayName("일별 과제 목록 조회 API 성공")
+    void getDailyTasks_success() throws Exception {
+        // given
+        Long menteeId = 2L;
+        String dateStr = "2025-01-27";
+        LocalDate date = LocalDate.parse(dateStr);
+
+        DailyTaskResponse response = DailyTaskResponse.builder()
+                .date(date)
+                .tasks(Collections.emptyList())
+                .summary(DailyTaskResponse.TaskSummary.builder()
+                        .total(4)
+                        .completed(0)
+                        .totalStudyTime(0)
+                        .build())
+                .build();
+
+        given(securityUtil.getCurrentUserId()).willReturn(menteeId);
+        given(menteeService.getDailyTasks(menteeId, dateStr)).willReturn(response);
+
+        // when & then
+        mockMvc.perform(get("/api/v1/mentee/tasks")
+                .param("date", dateStr)
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.date").value(dateStr))
+                .andExpect(jsonPath("$.data.summary.total").value(4))
+                .andExpect(jsonPath("$.data.summary.completed").value(0))
+                .andExpect(jsonPath("$.data.summary.totalStudyTime").value(0));
     }
 }

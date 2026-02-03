@@ -8,16 +8,15 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "tasks")
+@Table(name = "solutions")
 @Getter
 @NoArgsConstructor
 @ToString
 @EntityListeners(AuditingEntityListener.class)
-public class Task {
+public class Solution {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -26,34 +25,12 @@ public class Task {
     @Column(name = "mentee_id", nullable = false)
     private Long menteeId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "solution_id")
-    private Solution solution;
-
     @Column(nullable = false, length = 200)
     private String title;
 
-    @Column(name = "task_date", nullable = false)
-    private LocalDate taskDate;
-
     @Enumerated(EnumType.STRING)
-    @Column(name = "subject")
+    @Column(nullable = false)
     private Subject subject;
-
-    @Column(name = "study_time")
-    private Integer studyTime;
-
-    @Column(name = "is_mentor_assigned", nullable = false)
-    private boolean isMentorAssigned;
-
-    @Column(name = "is_mentor_confirmed", nullable = false)
-    private boolean isMentorConfirmed;
-
-    @Column(name = "confirmed_at")
-    private LocalDateTime confirmedAt;
-
-    @Column(name = "created_by", nullable = false)
-    private Long createdBy;
 
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -63,13 +40,9 @@ public class Task {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
-    public Task(Long menteeId, String title, LocalDate taskDate, Subject subject, Long createdBy) {
+    public Solution(Long menteeId, String title, Subject subject) {
         this.menteeId = menteeId;
         this.title = title;
-        this.taskDate = taskDate;
         this.subject = subject;
-        this.createdBy = createdBy;
-        this.isMentorAssigned = false;
-        this.isMentorConfirmed = false;
     }
 }

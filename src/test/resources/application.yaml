@@ -12,14 +12,14 @@ spring:
       hibernate:
         format_sql: true
     show-sql: true
-cloud:
-  aws:
-    stack:
-      auto: false
-    region:
-      static: ap-northeast-2
-    credentials:
-      access-key: test
-      secret-key: test
-    s3:
-      bucket: test-bucket
+  cloud:
+    aws:
+      stack:
+        auto: false
+      region:
+        static: ap-northeast-2
+      credentials:
+        access-key: test
+        secret-key: test
+      s3:
+        bucket: test-bucket

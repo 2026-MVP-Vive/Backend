@@ -72,4 +72,11 @@ public class Task {
         this.isMentorAssigned = false;
         this.isMentorConfirmed = false;
     }
+
+    public void updateStudyTime(Integer studyTime) {
+        if (studyTime == null || studyTime < 0) {
+            throw new IllegalArgumentException("Study time cannot be null or negative");
+        }
+        this.studyTime = studyTime;
+    }
 }

@@ -4,9 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.seolstudy.seolstudy_backend.global.config.SecurityConfig;
 import com.seolstudy.seolstudy_backend.global.util.SecurityUtil;
 import com.seolstudy.seolstudy_backend.mentee.domain.Subject;
-import com.seolstudy.seolstudy_backend.mentee.dto.TaskDetailResponse;
-import com.seolstudy.seolstudy_backend.mentee.dto.TaskRequest;
-import com.seolstudy.seolstudy_backend.mentee.dto.TaskResponse;
+import com.seolstudy.seolstudy_backend.mentee.dto.*;
 import com.seolstudy.seolstudy_backend.mentee.service.MenteeService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -25,8 +23,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import com.seolstudy.seolstudy_backend.mentee.dto.DailyTaskResponse;
 import java.util.Collections;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -149,5 +146,31 @@ class MenteeControllerTest {
                                 .andExpect(jsonPath("$.success").value(true))
                                 .andExpect(jsonPath("$.data.id").value(taskId))
                                 .andExpect(jsonPath("$.data.title").value("Detailed Task"));
+        }
+
+        @Test
+        @DisplayName("공부 시간 기록 API 성공")
+        void updateStudyTime_success() throws Exception {
+                // given
+                Long menteeId = 2L;
+                Long taskId = 1L;
+                Integer studyTime = 60;
+
+                UpdateStudyTimeRequest request = new UpdateStudyTimeRequest();
+                ReflectionTestUtils.setField(request, "studyTime", studyTime);
+
+                UpdateStudyTimeResponse response = new UpdateStudyTimeResponse(taskId, studyTime);
+
+                given(securityUtil.getCurrentUserId()).willReturn(menteeId);
+                given(menteeService.updateStudyTime(menteeId, taskId, studyTime)).willReturn(response);
+
+                // when & then
+                mockMvc.perform(patch("/api/v1/mentee/tasks/{taskId}/study-time", taskId)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request)))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.success").value(true))
+                                .andExpect(jsonPath("$.data.id").value(taskId))
+                                .andExpect(jsonPath("$.data.studyTime").value(studyTime));
         }
 }

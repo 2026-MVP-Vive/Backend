@@ -13,6 +13,9 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
+import com.seolstudy.seolstudy_backend.global.file.repository.FileRepository;
+import com.seolstudy.seolstudy_backend.mentee.dto.TaskDetailResponse;
+import java.util.Optional;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -35,6 +38,9 @@ class MenteeServiceTest {
 
     @Mock
     private com.seolstudy.seolstudy_backend.mentee.repository.TaskMaterialRepository taskMaterialRepository;
+
+    @Mock
+    private FileRepository fileRepository;
 
     @InjectMocks
     private MenteeService menteeService;
@@ -113,5 +119,29 @@ class MenteeServiceTest {
         TaskResponse tr2 = response.getTasks().get(1);
         assertThat(tr2.getId()).isEqualTo(102L);
         assertThat(tr2.isCompleted()).isFalse();
+    }
+
+    @Test
+    @DisplayName("할 일 상세 조회 서비스 로직 성공")
+    void getTaskDetail_success() {
+        // given
+        Long menteeId = 1L;
+        Long taskId = 100L;
+
+        Task task = new Task(menteeId, "Detailed Task", LocalDate.now(), Subject.KOREAN, menteeId);
+        ReflectionTestUtils.setField(task, "id", taskId);
+
+        given(taskRepository.findById(taskId)).willReturn(Optional.of(task));
+        given(taskMaterialRepository.findAllByTaskId(taskId)).willReturn(List.of());
+        given(submissionRepository.findByTaskId(taskId)).willReturn(null);
+        given(feedbackRepository.findByTaskId(taskId)).willReturn(null);
+
+        // when
+        TaskDetailResponse response = menteeService.getTaskDetail(menteeId, taskId);
+
+        // then
+        assertThat(response.getId()).isEqualTo(taskId);
+        assertThat(response.getTitle()).isEqualTo("Detailed Task");
+        assertThat(response.getSubject()).isEqualTo(Subject.KOREAN);
     }
 }

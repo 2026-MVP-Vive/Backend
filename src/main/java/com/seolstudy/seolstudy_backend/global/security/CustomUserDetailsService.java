@@ -7,7 +7,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
-import com.seolstudy.seolstudy_backend.repository.MemberRepository;
+import com.seolstudy.seolstudy_backend.auth.repository.MemberRepository;
 
 /**
  * 로그인 시도 시 유저 정보를 DB에서 찾고 유저 객체를 반환하는 클래스입니다.

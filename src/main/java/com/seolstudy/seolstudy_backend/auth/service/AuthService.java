@@ -1,9 +1,9 @@
-package com.seolstudy.seolstudy_backend.service;
+package com.seolstudy.seolstudy_backend.auth.service;
 
 import com.seolstudy.seolstudy_backend.auth.dto.LoginRequestDto;
 import com.seolstudy.seolstudy_backend.auth.entity.Member;
 import com.seolstudy.seolstudy_backend.global.security.JwtTokenProvider;
-import com.seolstudy.seolstudy_backend.repository.MemberRepository;
+import com.seolstudy.seolstudy_backend.auth.repository.MemberRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;

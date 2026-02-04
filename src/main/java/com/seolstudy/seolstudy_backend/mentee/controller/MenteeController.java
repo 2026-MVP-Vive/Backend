@@ -86,4 +86,16 @@ public class MenteeController {
 
         return ResponseEntity.ok(result);
     }
+
+    @GetMapping("/feedbacks")
+    public ResponseEntity<Map<String, Object>> getDailyFeedbacks(@RequestParam("date") String date) {
+        Long menteeId = securityUtil.getCurrentUserId();
+        DailyFeedbackResponse response = menteeService.getDailyFeedbacks(menteeId, date);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("success", true);
+        result.put("data", response);
+
+        return ResponseEntity.ok(result);
+    }
 }

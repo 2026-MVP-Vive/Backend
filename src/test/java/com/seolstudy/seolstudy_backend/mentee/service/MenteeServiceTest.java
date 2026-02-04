@@ -42,6 +42,15 @@ class MenteeServiceTest {
     @Mock
     private FileRepository fileRepository;
 
+    @Mock
+    private com.seolstudy.seolstudy_backend.mentee.repository.UserRepository userRepository;
+
+    @Mock
+    private com.seolstudy.seolstudy_backend.mentee.repository.OverallFeedbackRepository overallFeedbackRepository;
+
+    @Mock
+    private com.seolstudy.seolstudy_backend.mentee.repository.MentorMenteeRepository mentorMenteeRepository;
+
     @InjectMocks
     private MenteeService menteeService;
 
@@ -165,5 +174,47 @@ class MenteeServiceTest {
         assertThat(response.getId()).isEqualTo(taskId);
         assertThat(response.getStudyTime()).isEqualTo(studyTime);
         assertThat(task.getStudyTime()).isEqualTo(studyTime);
+    }
+
+    @Test
+    @DisplayName("날짜별 피드백 상세 조회 서비스 로직 성공")
+    void getDailyFeedbacks_success() {
+        // given
+        Long menteeId = 1L;
+        String dateStr = "2025-01-26";
+        LocalDate date = LocalDate.parse(dateStr);
+
+        Task task = new Task(menteeId, "Test Task", date, Subject.KOREAN, menteeId);
+        ReflectionTestUtils.setField(task, "id", 100L);
+
+        com.seolstudy.seolstudy_backend.mentee.domain.Feedback feedback = new com.seolstudy.seolstudy_backend.mentee.domain.Feedback();
+        ReflectionTestUtils.setField(feedback, "id", 301L);
+        ReflectionTestUtils.setField(feedback, "content", "Feed content");
+        ReflectionTestUtils.setField(feedback, "isImportant", true);
+
+        com.seolstudy.seolstudy_backend.mentee.domain.OverallFeedback overall = new com.seolstudy.seolstudy_backend.mentee.domain.OverallFeedback(
+                menteeId, 2L, date, "Overall content");
+
+        com.seolstudy.seolstudy_backend.mentee.domain.MentorMentee mm = new com.seolstudy.seolstudy_backend.mentee.domain.MentorMentee(
+                2L, menteeId);
+
+        com.seolstudy.seolstudy_backend.mentee.domain.User mentor = new com.seolstudy.seolstudy_backend.mentee.domain.User(
+                "mentor", "pass", "Kim Mentor", com.seolstudy.seolstudy_backend.mentee.domain.UserRole.MENTOR);
+
+        given(taskRepository.findAllByMenteeIdAndTaskDate(menteeId, date)).willReturn(List.of(task));
+        given(feedbackRepository.findByTaskId(100L)).willReturn(feedback);
+        given(overallFeedbackRepository.findByMenteeIdAndFeedbackDate(menteeId, date)).willReturn(Optional.of(overall));
+        given(mentorMenteeRepository.findByMenteeId(menteeId)).willReturn(Optional.of(mm));
+        given(userRepository.findById(2L)).willReturn(Optional.of(mentor));
+
+        // when
+        DailyFeedbackResponse response = menteeService.getDailyFeedbacks(menteeId, dateStr);
+
+        // then
+        assertThat(response.getDate()).isEqualTo(date);
+        assertThat(response.getFeedbacks()).hasSize(1);
+        assertThat(response.getFeedbacks().get(0).getContent()).isEqualTo("Feed content");
+        assertThat(response.getOverallComment()).isEqualTo("Overall content");
+        assertThat(response.getMentorName()).isEqualTo("Kim Mentor");
     }
 }

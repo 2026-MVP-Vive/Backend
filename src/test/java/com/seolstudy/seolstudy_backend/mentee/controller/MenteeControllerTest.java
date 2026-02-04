@@ -206,4 +206,32 @@ class MenteeControllerTest {
                                 .andExpect(jsonPath("$.success").value(true))
                                 .andExpect(jsonPath("$.data.taskId").value(taskId));
         }
+
+        @Test
+        @DisplayName("날짜별 피드백 상세 조회 API 성공")
+        void getDailyFeedbacks_success() throws Exception {
+                // given
+                Long menteeId = 2L;
+                String dateStr = "2025-01-26";
+                LocalDate date = LocalDate.parse(dateStr);
+
+                DailyFeedbackResponse response = DailyFeedbackResponse.builder()
+                                .date(date)
+                                .feedbacks(Collections.emptyList())
+                                .overallComment("Good job")
+                                .mentorName("Kim Mentor")
+                                .build();
+
+                given(securityUtil.getCurrentUserId()).willReturn(menteeId);
+                given(menteeService.getDailyFeedbacks(menteeId, dateStr)).willReturn(response);
+
+                // when & then
+                mockMvc.perform(get("/api/v1/mentee/feedbacks")
+                                .param("date", dateStr)
+                                .contentType(MediaType.APPLICATION_JSON))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.success").value(true))
+                                .andExpect(jsonPath("$.data.overallComment").value("Good job"))
+                                .andExpect(jsonPath("$.data.mentorName").value("Kim Mentor"));
+        }
 }

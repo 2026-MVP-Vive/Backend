@@ -4,16 +4,15 @@ import com.seolstudy.seolstudy_backend.global.file.domain.File;
 import com.seolstudy.seolstudy_backend.global.file.repository.FileRepository;
 import com.seolstudy.seolstudy_backend.mentee.domain.*;
 import com.seolstudy.seolstudy_backend.mentee.dto.*;
-import com.seolstudy.seolstudy_backend.mentee.repository.FeedbackRepository;
-import com.seolstudy.seolstudy_backend.mentee.repository.SubmissionRepository;
-import com.seolstudy.seolstudy_backend.mentee.repository.TaskMaterialRepository;
-import com.seolstudy.seolstudy_backend.mentee.repository.TaskRepository;
+import com.seolstudy.seolstudy_backend.mentee.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -25,6 +24,9 @@ public class MenteeService {
     private final FeedbackRepository feedbackRepository;
     private final TaskMaterialRepository taskMaterialRepository;
     private final FileRepository fileRepository;
+    private final UserRepository userRepository;
+    private final OverallFeedbackRepository overallFeedbackRepository;
+    private final MentorMenteeRepository mentorMenteeRepository;
 
     @Transactional
     public TaskResponse addTask(Long menteeId, TaskRequest request) {
@@ -158,6 +160,54 @@ public class MenteeService {
 
         task.updateStudyTime(studyTime);
         return new UpdateStudyTimeResponse(task.getId(), task.getStudyTime());
+    }
+
+    public DailyFeedbackResponse getDailyFeedbacks(Long menteeId, String dateStr) {
+        LocalDate date = LocalDate.parse(dateStr);
+
+        // 1. Get tasks for the day
+        List<Task> tasks = taskRepository.findAllByMenteeIdAndTaskDate(menteeId, date);
+
+        // 2. Get feedbacks for these tasks
+        List<DailyFeedbackResponse.FeedbackItem> feedbackItems = new ArrayList<>();
+        for (Task task : tasks) {
+            Feedback feedback = feedbackRepository.findByTaskId(task.getId());
+            if (feedback != null) {
+                feedbackItems.add(DailyFeedbackResponse.FeedbackItem.builder()
+                        .id(feedback.getId())
+                        .taskId(task.getId())
+                        .taskTitle(task.getTitle())
+                        .subject(task.getSubject())
+                        .subjectName(task.getSubject() != null ? task.getSubject().getDescription() : null)
+                        .isImportant(feedback.isImportant())
+                        .summary(feedback.getSummary())
+                        .content(feedback.getContent())
+                        .createdAt(feedback.getCreatedAt())
+                        .build());
+            }
+        }
+
+        // 3. Get overall feedback
+        Optional<OverallFeedback> overallFeedback = overallFeedbackRepository.findByMenteeIdAndFeedbackDate(menteeId,
+                date);
+        String overallComment = overallFeedback.map(OverallFeedback::getContent).orElse(null);
+
+        // 4. Get mentor name
+        String mentorName = null;
+        Optional<MentorMentee> mentorMentee = mentorMenteeRepository.findByMenteeId(menteeId);
+        if (mentorMentee.isPresent()) {
+            Optional<User> mentor = userRepository.findById(mentorMentee.get().getMentorId());
+            if (mentor.isPresent()) {
+                mentorName = mentor.get().getName();
+            }
+        }
+
+        return DailyFeedbackResponse.builder()
+                .date(date)
+                .feedbacks(feedbackItems)
+                .overallComment(overallComment)
+                .mentorName(mentorName)
+                .build();
     }
 
 }

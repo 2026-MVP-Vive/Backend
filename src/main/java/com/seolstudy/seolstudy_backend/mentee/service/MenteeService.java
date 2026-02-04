@@ -210,4 +210,40 @@ public class MenteeService {
                 .build();
     }
 
+    public YesterdayFeedbackResponse getYesterdayFeedbacks(Long menteeId) {
+        LocalDate yesterday = LocalDate.now().minusDays(1);
+
+        // 1. Get tasks for yesterday
+        List<Task> tasks = taskRepository.findAllByMenteeIdAndTaskDate(menteeId, yesterday);
+
+        // 2. Get feedbacks for these tasks
+        List<YesterdayFeedbackResponse.FeedbackItem> feedbackItems = new ArrayList<>();
+        for (Task task : tasks) {
+            Feedback feedback = feedbackRepository.findByTaskId(task.getId());
+            if (feedback != null) {
+                feedbackItems.add(YesterdayFeedbackResponse.FeedbackItem.builder()
+                        .id(feedback.getId())
+                        .taskId(task.getId())
+                        .taskTitle(task.getTitle())
+                        .subject(task.getSubject())
+                        .subjectName(task.getSubject() != null ? task.getSubject().getDescription() : null)
+                        .isImportant(feedback.isImportant())
+                        .summary(feedback.getSummary())
+                        .createdAt(feedback.getCreatedAt())
+                        .build());
+            }
+        }
+
+        // 3. Get overall feedback
+        Optional<OverallFeedback> overallFeedback = overallFeedbackRepository.findByMenteeIdAndFeedbackDate(menteeId,
+                yesterday);
+        String overallComment = overallFeedback.map(OverallFeedback::getContent).orElse(null);
+
+        return YesterdayFeedbackResponse.builder()
+                .date(yesterday)
+                .feedbacks(feedbackItems)
+                .overallComment(overallComment)
+                .build();
+    }
+
 }

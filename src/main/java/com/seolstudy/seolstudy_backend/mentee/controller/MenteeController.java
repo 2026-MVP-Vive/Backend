@@ -98,4 +98,16 @@ public class MenteeController {
 
         return ResponseEntity.ok(result);
     }
+
+    @GetMapping("/feedbacks/yesterday")
+    public ResponseEntity<Map<String, Object>> getYesterdayFeedbacks() {
+        Long menteeId = securityUtil.getCurrentUserId();
+        YesterdayFeedbackResponse response = menteeService.getYesterdayFeedbacks(menteeId);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("success", true);
+        result.put("data", response);
+
+        return ResponseEntity.ok(result);
+    }
 }

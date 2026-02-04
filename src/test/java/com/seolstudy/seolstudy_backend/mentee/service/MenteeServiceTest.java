@@ -217,4 +217,36 @@ class MenteeServiceTest {
         assertThat(response.getOverallComment()).isEqualTo("Overall content");
         assertThat(response.getMentorName()).isEqualTo("Kim Mentor");
     }
+
+    @Test
+    @DisplayName("어제자 피드백 목록 조회 서비스 로직 성공")
+    void getYesterdayFeedbacks_success() {
+        // given
+        Long menteeId = 1L;
+        LocalDate yesterday = LocalDate.now().minusDays(1);
+
+        Task task = new Task(menteeId, "Yesterday Task", yesterday, Subject.ENGLISH, menteeId);
+        ReflectionTestUtils.setField(task, "id", 200L);
+
+        com.seolstudy.seolstudy_backend.mentee.domain.Feedback feedback = new com.seolstudy.seolstudy_backend.mentee.domain.Feedback();
+        ReflectionTestUtils.setField(feedback, "id", 501L);
+        ReflectionTestUtils.setField(feedback, "summary", "Yesterday Summary");
+
+        com.seolstudy.seolstudy_backend.mentee.domain.OverallFeedback overall = new com.seolstudy.seolstudy_backend.mentee.domain.OverallFeedback(
+                menteeId, 2L, yesterday, "Good job yesterday");
+
+        given(taskRepository.findAllByMenteeIdAndTaskDate(menteeId, yesterday)).willReturn(List.of(task));
+        given(feedbackRepository.findByTaskId(200L)).willReturn(feedback);
+        given(overallFeedbackRepository.findByMenteeIdAndFeedbackDate(menteeId, yesterday))
+                .willReturn(Optional.of(overall));
+
+        // when
+        YesterdayFeedbackResponse response = menteeService.getYesterdayFeedbacks(menteeId);
+
+        // then
+        assertThat(response.getDate()).isEqualTo(yesterday);
+        assertThat(response.getFeedbacks()).hasSize(1);
+        assertThat(response.getFeedbacks().get(0).getSummary()).isEqualTo("Yesterday Summary");
+        assertThat(response.getOverallComment()).isEqualTo("Good job yesterday");
+    }
 }

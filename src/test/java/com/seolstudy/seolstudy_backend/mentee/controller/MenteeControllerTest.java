@@ -13,6 +13,8 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -42,6 +44,9 @@ class MenteeControllerTest {
 
         @MockBean
         private SecurityUtil securityUtil; // Mock the new dependency
+
+        @MockBean
+        private com.seolstudy.seolstudy_backend.mentee.service.SubmissionService submissionService;
 
         @Test
         @DisplayName("멘티 할 일 추가 성공")
@@ -172,5 +177,85 @@ class MenteeControllerTest {
                                 .andExpect(jsonPath("$.success").value(true))
                                 .andExpect(jsonPath("$.data.id").value(taskId))
                                 .andExpect(jsonPath("$.data.studyTime").value(studyTime));
+        }
+
+        @Test
+        @DisplayName("과제 제출 성공")
+        void submitTask_success() throws Exception {
+                // given
+                Long menteeId = 2L;
+                Long taskId = 1L;
+                MockMultipartFile image = new MockMultipartFile("image", "test.jpg", "image/jpeg",
+                                "test image content".getBytes());
+
+                SubmissionResponse response = SubmissionResponse.builder()
+                                .id(1L)
+                                .taskId(taskId)
+                                .imageUrl("/api/v1/files/1")
+                                .submittedAt(java.time.LocalDateTime.now())
+                                .build();
+
+                given(securityUtil.getCurrentUserId()).willReturn(menteeId);
+                given(submissionService.submitTask(eq(menteeId), eq(taskId), any(MultipartFile.class)))
+                                .willReturn(response);
+
+                // when & then
+                mockMvc.perform(multipart("/api/v1/mentee/tasks/{taskId}/submission", taskId)
+                                .file(image))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.success").value(true))
+                                .andExpect(jsonPath("$.data.taskId").value(taskId));
+        }
+
+        @Test
+        @DisplayName("날짜별 피드백 상세 조회 API 성공")
+        void getDailyFeedbacks_success() throws Exception {
+                // given
+                Long menteeId = 2L;
+                String dateStr = "2025-01-26";
+                LocalDate date = LocalDate.parse(dateStr);
+
+                DailyFeedbackResponse response = DailyFeedbackResponse.builder()
+                                .date(date)
+                                .feedbacks(Collections.emptyList())
+                                .overallComment("Good job")
+                                .mentorName("Kim Mentor")
+                                .build();
+
+                given(securityUtil.getCurrentUserId()).willReturn(menteeId);
+                given(menteeService.getDailyFeedbacks(menteeId, dateStr)).willReturn(response);
+
+                // when & then
+                mockMvc.perform(get("/api/v1/mentee/feedbacks")
+                                .param("date", dateStr)
+                                .contentType(MediaType.APPLICATION_JSON))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.success").value(true))
+                                .andExpect(jsonPath("$.data.overallComment").value("Good job"))
+                                .andExpect(jsonPath("$.data.mentorName").value("Kim Mentor"));
+        }
+
+        @Test
+        @DisplayName("어제자 피드백 목록 조회 API 성공")
+        void getYesterdayFeedbacks_success() throws Exception {
+                // given
+                Long menteeId = 2L;
+                LocalDate yesterday = LocalDate.now().minusDays(1);
+
+                YesterdayFeedbackResponse response = YesterdayFeedbackResponse.builder()
+                                .date(yesterday)
+                                .feedbacks(Collections.emptyList())
+                                .overallComment("Excellent")
+                                .build();
+
+                given(securityUtil.getCurrentUserId()).willReturn(menteeId);
+                given(menteeService.getYesterdayFeedbacks(menteeId)).willReturn(response);
+
+                // when & then
+                mockMvc.perform(get("/api/v1/mentee/feedbacks/yesterday")
+                                .contentType(MediaType.APPLICATION_JSON))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.success").value(true))
+                                .andExpect(jsonPath("$.data.overallComment").value("Excellent"));
         }
 }

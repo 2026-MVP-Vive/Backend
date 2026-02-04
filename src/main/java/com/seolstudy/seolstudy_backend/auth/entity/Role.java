@@ -1,4 +1,4 @@
-package com.seolstudy.seolstudy_backend.entity;
+package com.seolstudy.seolstudy_backend.auth.entity;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;

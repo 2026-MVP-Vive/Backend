@@ -1,6 +1,6 @@
 package com.seolstudy.seolstudy_backend.global.security;
 
-import com.seolstudy.seolstudy_backend.entity.Member;
+import com.seolstudy.seolstudy_backend.auth.entity.Member;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;

@@ -1,4 +1,4 @@
-package com.seolstudy.seolstudy_backend.dto;
+package com.seolstudy.seolstudy_backend.auth.dto;
 
 
 import lombok.AllArgsConstructor;

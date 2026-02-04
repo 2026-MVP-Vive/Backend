@@ -1,6 +1,5 @@
-package com.seolstudy.seolstudy_backend.entity;
+package com.seolstudy.seolstudy_backend.auth.entity;
 
-import com.seolstudy.seolstudy_backend.entity.Role;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;

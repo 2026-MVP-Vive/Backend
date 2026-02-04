@@ -1,6 +1,6 @@
 package com.seolstudy.seolstudy_backend.repository;
 
-import com.seolstudy.seolstudy_backend.entity.Member;
+import com.seolstudy.seolstudy_backend.auth.entity.Member;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;

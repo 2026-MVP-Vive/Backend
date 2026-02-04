@@ -17,7 +17,6 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 /**
  * 시큐리티 필터 체인 설정 클래스입니다.
  * */
-
 @Configuration
 @RequiredArgsConstructor
 @EnableWebSecurity

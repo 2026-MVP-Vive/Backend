@@ -1,6 +1,6 @@
 package com.seolstudy.seolstudy_backend.global.security;
 
-import com.seolstudy.seolstudy_backend.entity.Role;
+import com.seolstudy.seolstudy_backend.auth.entity.Role;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.Jwts;

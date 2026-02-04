@@ -46,3 +46,5 @@ out/
 
 ### MacOS ###
 .DS_Store
+
+application-local.yaml

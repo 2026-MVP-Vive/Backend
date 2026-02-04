@@ -3,10 +3,7 @@ package com.seolstudy.seolstudy_backend.mentee.service;
 import com.seolstudy.seolstudy_backend.global.file.domain.File;
 import com.seolstudy.seolstudy_backend.global.file.repository.FileRepository;
 import com.seolstudy.seolstudy_backend.mentee.domain.*;
-import com.seolstudy.seolstudy_backend.mentee.dto.DailyTaskResponse;
-import com.seolstudy.seolstudy_backend.mentee.dto.TaskDetailResponse;
-import com.seolstudy.seolstudy_backend.mentee.dto.TaskRequest;
-import com.seolstudy.seolstudy_backend.mentee.dto.TaskResponse;
+import com.seolstudy.seolstudy_backend.mentee.dto.*;
 import com.seolstudy.seolstudy_backend.mentee.repository.FeedbackRepository;
 import com.seolstudy.seolstudy_backend.mentee.repository.SubmissionRepository;
 import com.seolstudy.seolstudy_backend.mentee.repository.TaskMaterialRepository;
@@ -148,5 +145,18 @@ public class MenteeService {
                 .feedback(feedbackDto)
                 .createdAt(task.getCreatedAt())
                 .build();
+    }
+
+    @Transactional
+    public UpdateStudyTimeResponse updateStudyTime(Long menteeId, Long taskId, Integer studyTime) {
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new RuntimeException("Task not found"));
+
+        if (!task.getMenteeId().equals(menteeId)) {
+            throw new RuntimeException("Access denied");
+        }
+
+        task.updateStudyTime(studyTime);
+        return new UpdateStudyTimeResponse(task.getId(), task.getStudyTime());
     }
 }

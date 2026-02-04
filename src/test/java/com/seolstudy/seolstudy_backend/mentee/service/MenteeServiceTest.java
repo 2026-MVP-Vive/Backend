@@ -14,7 +14,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 import com.seolstudy.seolstudy_backend.global.file.repository.FileRepository;
-import com.seolstudy.seolstudy_backend.mentee.dto.TaskDetailResponse;
+import com.seolstudy.seolstudy_backend.mentee.dto.*;
 import java.util.Optional;
 
 import java.time.LocalDate;
@@ -143,5 +143,27 @@ class MenteeServiceTest {
         assertThat(response.getId()).isEqualTo(taskId);
         assertThat(response.getTitle()).isEqualTo("Detailed Task");
         assertThat(response.getSubject()).isEqualTo(Subject.KOREAN);
+    }
+
+    @Test
+    @DisplayName("공부 시간 기록 서비스 로직 성공")
+    void updateStudyTime_success() {
+        // given
+        Long menteeId = 1L;
+        Long taskId = 100L;
+        Integer studyTime = 60;
+
+        Task task = new Task(menteeId, "Study Task", LocalDate.now(), Subject.MATH, menteeId);
+        ReflectionTestUtils.setField(task, "id", taskId);
+
+        given(taskRepository.findById(taskId)).willReturn(Optional.of(task));
+
+        // when
+        UpdateStudyTimeResponse response = menteeService.updateStudyTime(menteeId, taskId, studyTime);
+
+        // then
+        assertThat(response.getId()).isEqualTo(taskId);
+        assertThat(response.getStudyTime()).isEqualTo(studyTime);
+        assertThat(task.getStudyTime()).isEqualTo(studyTime);
     }
 }

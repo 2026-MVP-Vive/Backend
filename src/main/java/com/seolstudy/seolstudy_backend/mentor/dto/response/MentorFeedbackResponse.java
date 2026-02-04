@@ -1,2 +1,4 @@
-package com.seolstudy.seolstudy_backend.mentor.dto.response;public class MentorFeedbackResponse {
+package com.seolstudy.seolstudy_backend.mentor.dto.response;
+
+public class MentorFeedbackResponse {
 }

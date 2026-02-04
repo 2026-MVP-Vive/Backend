@@ -1,2 +1,4 @@
-package com.seolstudy.seolstudy_backend.mentor.dto.request;public class MentorSolutionRequest {
+package com.seolstudy.seolstudy_backend.mentor.dto.request;
+
+public class MentorSolutionRequest {
 }

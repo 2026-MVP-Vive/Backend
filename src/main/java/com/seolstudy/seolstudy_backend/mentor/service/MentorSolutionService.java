@@ -1,2 +1,4 @@
-package com.seolstudy.seolstudy_backend.mentor.service;public class MentorSolutionService {
+package com.seolstudy.seolstudy_backend.mentor.service;
+
+public class MentorSolutionService {
 }

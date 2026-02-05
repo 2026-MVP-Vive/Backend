@@ -40,6 +40,7 @@ public class CustomUserDetailsService implements UserDetailsService {
         return User.builder()
                 .username(String.valueOf(member.getId())) //util 패키지의 getMemberId를 위해 UserDetails 객체의 username에 member_id를 삽입
 
+
                 .password(member.getPassword()) // DB에 저장된 암호화된 비밀번호
                 .roles(member.getRole().name()) // MENTEE, MENTOR 등 (ROLE_ prefix는 스프링이 자동 처리)
                 .build();

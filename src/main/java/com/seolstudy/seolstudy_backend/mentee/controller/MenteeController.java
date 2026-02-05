@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -24,13 +25,14 @@ public class MenteeController {
     private final MenteeFeedbackService menteeFeedbackService;
     private final SubmissionService submissionService;
     private final AchievementService achievementService;
+
     private final SecurityUtil securityUtil;
 
     @PostMapping("/tasks")
     public ResponseEntity<Map<String, Object>> addTask(@Valid @RequestBody TaskRequest request) {
         Long menteeId = securityUtil.getCurrentUserId();
 
-        TaskResponse response = menteeService.addTask(menteeId, request);
+        TaskResponse response = taskService.addTask(menteeId, request);
 
         Map<String, Object> result = new HashMap<>();
         result.put("success", true);
@@ -42,7 +44,7 @@ public class MenteeController {
     @GetMapping("/tasks")
     public ResponseEntity<Map<String, Object>> getDailyTasks(@RequestParam("date") String date) {
         Long menteeId = securityUtil.getCurrentUserId();
-        DailyTaskResponse response = menteeService.getDailyTasks(menteeId, date);
+        DailyTaskResponse response = taskService.getDailyTasks(menteeId, date);
 
         Map<String, Object> result = new HashMap<>();
         result.put("success", true);
@@ -54,7 +56,7 @@ public class MenteeController {
     @GetMapping("/tasks/{taskId}")
     public ResponseEntity<Map<String, Object>> getTaskDetail(@PathVariable("taskId") Long taskId) {
         Long menteeId = securityUtil.getCurrentUserId();
-        TaskDetailResponse response = menteeService.getTaskDetail(menteeId, taskId);
+        TaskDetailResponse response = taskService.getTaskDetail(menteeId, taskId);
 
         Map<String, Object> result = new HashMap<>();
         result.put("success", true);
@@ -68,7 +70,45 @@ public class MenteeController {
             @PathVariable("taskId") Long taskId,
             @Valid @RequestBody UpdateStudyTimeRequest request) {
         Long menteeId = securityUtil.getCurrentUserId();
-        UpdateStudyTimeResponse response = menteeService.updateStudyTime(menteeId, taskId, request.getStudyTime());
+        UpdateStudyTimeResponse response = taskService.updateStudyTime(menteeId, taskId, request.getStudyTime());
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("success", true);
+        result.put("data", response);
+
+        return ResponseEntity.ok(result);
+    }
+
+    @PostMapping("/tasks/{taskId}/submission")
+    public ResponseEntity<Map<String, Object>> submitTask(
+            @PathVariable("taskId") Long taskId,
+            @RequestParam("image") MultipartFile image) {
+        Long menteeId = securityUtil.getCurrentUserId();
+        SubmissionResponse response = submissionService.submitTask(menteeId, taskId, image);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("success", true);
+        result.put("data", response);
+
+        return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/feedbacks")
+    public ResponseEntity<Map<String, Object>> getDailyFeedbacks(@RequestParam("date") String date) {
+        Long menteeId = securityUtil.getCurrentUserId();
+        DailyFeedbackResponse response = menteeFeedbackService.getDailyFeedbacks(menteeId, date);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("success", true);
+        result.put("data", response);
+
+        return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/feedbacks/yesterday")
+    public ResponseEntity<Map<String, Object>> getYesterdayFeedbacks() {
+        Long menteeId = securityUtil.getCurrentUserId();
+        YesterdayFeedbackResponse response = menteeFeedbackService.getYesterdayFeedbacks(menteeId);
 
         Map<String, Object> result = new HashMap<>();
         result.put("success", true);

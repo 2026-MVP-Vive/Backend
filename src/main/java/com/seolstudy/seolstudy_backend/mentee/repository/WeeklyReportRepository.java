@@ -7,4 +7,5 @@ import java.util.List;
 
 public interface WeeklyReportRepository extends JpaRepository<WeeklyReport, Long> {
     List<WeeklyReport> findAllByMenteeIdOrderByWeekNumberDesc(Long menteeId);
+    boolean existsByMenteeIdAndWeekNumber(Long menteeId, Integer weekNumber);
 }

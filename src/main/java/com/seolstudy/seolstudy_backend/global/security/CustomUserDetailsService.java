@@ -38,7 +38,8 @@ public class CustomUserDetailsService implements UserDetailsService {
         // 2. 스프링 시큐리티가 이해할 수 있는 UserDetails 객체로 변환
         // username에 ID를 사용하여 SecurityUtil.getLoginUserId()와 호환
         return User.builder()
-                .username(String.valueOf(member.getId()))
+                .username(String.valueOf(member.getId())) //util 패키지의 getMemberId를 위해 UserDetails 객체의 username에 member_id를 삽입
+
                 .password(member.getPassword()) // DB에 저장된 암호화된 비밀번호
                 .roles(member.getRole().name()) // MENTEE, MENTOR 등 (ROLE_ prefix는 스프링이 자동 처리)
                 .build();

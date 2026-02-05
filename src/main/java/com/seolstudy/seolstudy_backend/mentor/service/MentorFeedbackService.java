@@ -5,7 +5,9 @@ import com.seolstudy.seolstudy_backend.mentee.domain.Task;
 import com.seolstudy.seolstudy_backend.mentee.repository.FeedbackRepository;
 import com.seolstudy.seolstudy_backend.mentee.repository.TaskRepository;
 import com.seolstudy.seolstudy_backend.mentor.dto.request.MentorFeedbackCreateRequest;
+import com.seolstudy.seolstudy_backend.mentor.dto.request.MentorFeedbackUpdateRequest;
 import com.seolstudy.seolstudy_backend.mentor.dto.response.MentorFeedbackCreateResponse;
+import com.seolstudy.seolstudy_backend.mentor.dto.response.MentorFeedbackUpdateResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -64,6 +66,46 @@ public class MentorFeedbackService {
                 saved.getSummary(),
                 saved.isImportant(),
                 saved.getCreatedAt()
+        );
+    }
+
+    @Transactional
+    public MentorFeedbackUpdateResponse updateFeedback(
+            Long feedbackId,
+            MentorFeedbackUpdateRequest request
+    ) {
+        // 1️⃣ Feedback 조회
+        Feedback feedback = feedbackRepository.findById(feedbackId)
+                .orElseThrow(() -> new NoSuchElementException("피드백을 찾을 수 없습니다."));
+
+        // 2️⃣ 수정할 값이 하나도 없는 경우
+        if (request.getContent() == null
+                && request.getSummary() == null
+                && request.getIsImportant() == null) {
+            throw new IllegalArgumentException("수정할 값이 없습니다.");
+        }
+
+        // 3️⃣ 필드별 부분 수정
+        if (request.getContent() != null) {
+            feedback.setContent(request.getContent());
+        }
+
+        if (request.getSummary() != null) {
+            feedback.setSummary(request.getSummary());
+        }
+
+        if (request.getIsImportant() != null) {
+            feedback.setImportant(request.getIsImportant());
+        }
+
+        // save() 필요 없음 (dirty checking)
+
+        return new MentorFeedbackUpdateResponse(
+                feedback.getId(),
+                feedback.getContent(),
+                feedback.getSummary(),
+                feedback.isImportant(),
+                feedback.getUpdatedAt()
         );
     }
 }

@@ -6,6 +6,7 @@ import com.seolstudy.seolstudy_backend.mentee.domain.*;
 import com.seolstudy.seolstudy_backend.mentee.dto.SubmissionResponse;
 import com.seolstudy.seolstudy_backend.mentee.repository.*;
 import com.seolstudy.seolstudy_backend.mentor.dto.request.MentorTaskCreateRequest;
+import com.seolstudy.seolstudy_backend.mentor.dto.request.MentorTaskUpdateRequest;
 import com.seolstudy.seolstudy_backend.mentor.dto.response.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -213,6 +214,56 @@ public class MentorTaskService {
                 materialResponses
         );
     }
+
+    @Transactional
+    public MentorTaskUpdateResponse updateStudentTask(
+            Long studentId,
+            Long taskId,
+            MentorTaskUpdateRequest request
+    ) {
+        // 1️⃣ 멘티 확인
+        userRepository.findById(studentId)
+                .orElseThrow(() -> new NoSuchElementException("멘티를 찾을 수 없습니다."));
+
+        // 2️⃣ Task 조회
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new NoSuchElementException("할 일을 찾을 수 없습니다."));
+
+        // 3️⃣ 멘티 소유 Task인지 검증
+        if (!task.getMenteeId().equals(studentId)) {
+            throw new IllegalArgumentException("해당 멘티의 할 일이 아닙니다.");
+        }
+
+        // 4️⃣ title 수정
+        if (request.getTitle() != null) {
+            task.setTitle(request.getTitle());
+        }
+
+        // 5️⃣ date 수정
+        if (request.getDate() != null) {
+            task.setTaskDate(request.getDate());
+        }
+
+        // 6️⃣ goalId 수정
+        if (request.getGoalId() != null) {
+            Solution solution = solutionRepository.findById(request.getGoalId())
+                    .orElseThrow(() -> new NoSuchElementException("목표를 찾을 수 없습니다."));
+
+            task.setSolution(solution);
+            task.setSubject(solution.getSubject());
+        }
+
+        taskRepository.save(task);
+
+        // 7️⃣ 응답
+        return new MentorTaskUpdateResponse(
+                task.getId(),
+                task.getTitle(),
+                task.getTaskDate(),
+                task.getUpdatedAt()
+        );
+    }
+
 
 
 }

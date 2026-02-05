@@ -1,13 +1,18 @@
 package com.seolstudy.seolstudy_backend.mentor.service;
 
 import com.seolstudy.seolstudy_backend.mentee.domain.Feedback;
+import com.seolstudy.seolstudy_backend.mentee.domain.OverallFeedback;
 import com.seolstudy.seolstudy_backend.mentee.domain.Task;
 import com.seolstudy.seolstudy_backend.mentee.repository.FeedbackRepository;
+import com.seolstudy.seolstudy_backend.mentee.repository.OverallFeedbackRepository;
 import com.seolstudy.seolstudy_backend.mentee.repository.TaskRepository;
+import com.seolstudy.seolstudy_backend.mentee.repository.UserRepository;
 import com.seolstudy.seolstudy_backend.mentor.dto.request.MentorFeedbackCreateRequest;
 import com.seolstudy.seolstudy_backend.mentor.dto.request.MentorFeedbackUpdateRequest;
+import com.seolstudy.seolstudy_backend.mentor.dto.request.MentorOverallFeedbackRequest;
 import com.seolstudy.seolstudy_backend.mentor.dto.response.MentorFeedbackCreateResponse;
 import com.seolstudy.seolstudy_backend.mentor.dto.response.MentorFeedbackUpdateResponse;
+import com.seolstudy.seolstudy_backend.mentor.dto.response.MentorOverallFeedbackResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,6 +27,8 @@ public class MentorFeedbackService {
     private final TaskRepository taskRepository;
     private final FeedbackRepository feedbackRepository;
 
+    private final UserRepository userRepository;
+    private final OverallFeedbackRepository overallFeedbackRepository;
     @Transactional
     public MentorFeedbackCreateResponse createFeedback(
             Long studentId,
@@ -106,6 +113,51 @@ public class MentorFeedbackService {
                 feedback.getSummary(),
                 feedback.isImportant(),
                 feedback.getUpdatedAt()
+        );
+    }
+    @Transactional
+    public MentorOverallFeedbackResponse upsertOverallFeedback(
+            Long studentId,
+            MentorOverallFeedbackRequest request
+    ) {
+        // 1️⃣ 검증
+        if (request.getDate() == null) {
+            throw new IllegalArgumentException("date는 필수입니다.");
+        }
+        if (request.getContent() == null || request.getContent().isBlank()) {
+            throw new IllegalArgumentException("총평 내용은 필수입니다.");
+        }
+
+        // 2️⃣ 멘티 존재 확인
+        userRepository.findById(studentId)
+                .orElseThrow(() -> new NoSuchElementException("멘티를 찾을 수 없습니다."));
+
+        // ⚠️ JWT 붙이기 전 임시 mentorId
+        Long mentorId = studentId;
+
+        // 3️⃣ 기존 총평 조회
+        OverallFeedback overallFeedback =
+                overallFeedbackRepository
+                        .findByMenteeIdAndFeedbackDate(studentId, request.getDate())
+                        .orElseGet(() ->
+                                new OverallFeedback(
+                                        studentId,
+                                        mentorId,
+                                        request.getDate(),
+                                        request.getContent()
+                                )
+                        );
+
+        // 4️⃣ 기존 데이터면 수정
+        overallFeedback.updateContent(request.getContent());
+
+        OverallFeedback saved = overallFeedbackRepository.save(overallFeedback);
+
+        return new MentorOverallFeedbackResponse(
+                saved.getId(),
+                saved.getFeedbackDate(),
+                saved.getContent(),
+                saved.getUpdatedAt()
         );
     }
 }

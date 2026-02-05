@@ -49,4 +49,7 @@ public class OverallFeedback {
         this.feedbackDate = feedbackDate;
         this.content = content;
     }
+    public void updateContent(String content) {
+        this.content = content;
+    }
 }

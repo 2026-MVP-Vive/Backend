@@ -11,7 +11,7 @@ import com.seolstudy.seolstudy_backend.auth.repository.MemberRepository;
 
 /**
  * 로그인 시도 시 유저 정보를 DB에서 찾고 유저 객체를 반환하는 클래스입니다.
- * */
+ */
 
 @Service
 @RequiredArgsConstructor
@@ -20,14 +20,25 @@ public class CustomUserDetailsService implements UserDetailsService {
     private final MemberRepository memberRepository;
 
     @Override
-    public UserDetails loadUserByUsername(String loginId) throws UsernameNotFoundException {
-        // 1. DB에서 이메일로 사용자 조회 (명세서의 USERS 테이블)
-        Member member = memberRepository.findByLoginId(loginId)
-                .orElseThrow(() -> new UsernameNotFoundException("해당 이메일을 가진 사용자를 찾을 수 없습니다: " + loginId));
+    public UserDetails loadUserByUsername(String userIdOrLoginId) throws UsernameNotFoundException {
+        Member member;
+
+        // JWT 토큰에서 전달된 값이 숫자(ID)인 경우 ID로 조회
+        try {
+            Long userId = Long.parseLong(userIdOrLoginId);
+            member = memberRepository.findById(userId)
+                    .orElseThrow(() -> new UsernameNotFoundException("해당 ID를 가진 사용자를 찾을 수 없습니다: " + userId));
+        } catch (NumberFormatException e) {
+            // 숫자가 아닌 경우 loginId로 조회 (로그인 시)
+            member = memberRepository.findByLoginId(userIdOrLoginId)
+                    .orElseThrow(
+                            () -> new UsernameNotFoundException("해당 로그인 ID를 가진 사용자를 찾을 수 없습니다: " + userIdOrLoginId));
+        }
 
         // 2. 스프링 시큐리티가 이해할 수 있는 UserDetails 객체로 변환
+        // username에 ID를 사용하여 SecurityUtil.getLoginUserId()와 호환
         return User.builder()
-                .username(member.getLoginId())
+                .username(String.valueOf(member.getId()))
                 .password(member.getPassword()) // DB에 저장된 암호화된 비밀번호
                 .roles(member.getRole().name()) // MENTEE, MENTOR 등 (ROLE_ prefix는 스프링이 자동 처리)
                 .build();

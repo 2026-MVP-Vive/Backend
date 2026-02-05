@@ -7,8 +7,10 @@ package com.seolstudy.seolstudy_backend.mentor.controller;
 import com.seolstudy.seolstudy_backend.global.common.ApiResponse;
 import com.seolstudy.seolstudy_backend.mentor.dto.request.MentorFeedbackCreateRequest;
 import com.seolstudy.seolstudy_backend.mentor.dto.request.MentorFeedbackUpdateRequest;
+import com.seolstudy.seolstudy_backend.mentor.dto.request.MentorOverallFeedbackRequest;
 import com.seolstudy.seolstudy_backend.mentor.dto.response.MentorFeedbackCreateResponse;
 import com.seolstudy.seolstudy_backend.mentor.dto.response.MentorFeedbackUpdateResponse;
+import com.seolstudy.seolstudy_backend.mentor.dto.response.MentorOverallFeedbackResponse;
 import com.seolstudy.seolstudy_backend.mentor.service.MentorFeedbackService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -39,4 +41,15 @@ public class MentorFeedbackController {
                 mentorFeedbackService.updateFeedback(feedbackId, request)
         );
     }
+
+    @PutMapping("/students/{studentId}/feedbacks/overall")
+    public ApiResponse<MentorOverallFeedbackResponse> upsertOverallFeedback(
+            @PathVariable Long studentId,
+            @RequestBody MentorOverallFeedbackRequest request
+    ) {
+        return ApiResponse.success(
+                mentorFeedbackService.upsertOverallFeedback(studentId, request)
+        );
+    }
+
 }

@@ -5,6 +5,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface SubmissionRepository extends JpaRepository<Submission, Long> {
     boolean existsByTaskId(Long taskId);
-
+    void deleteByTaskId(Long taskId);
     Submission findByTaskId(Long taskId);
 }

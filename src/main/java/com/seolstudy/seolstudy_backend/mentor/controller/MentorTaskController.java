@@ -8,8 +8,10 @@ package com.seolstudy.seolstudy_backend.mentor.controller;
 
 import com.seolstudy.seolstudy_backend.global.common.ApiResponse;
 import com.seolstudy.seolstudy_backend.mentor.dto.request.MentorTaskCreateRequest;
+import com.seolstudy.seolstudy_backend.mentor.dto.request.MentorTaskUpdateRequest;
 import com.seolstudy.seolstudy_backend.mentor.dto.response.MentorStudentTaskResponse;
 import com.seolstudy.seolstudy_backend.mentor.dto.response.MentorTaskCreateResponse;
+import com.seolstudy.seolstudy_backend.mentor.dto.response.MentorTaskUpdateResponse;
 import com.seolstudy.seolstudy_backend.mentor.service.MentorTaskService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -73,7 +75,16 @@ public class MentorTaskController {
                 )
         );
     }
-
+    @PutMapping("/students/{studentId}/tasks/{taskId}")
+    public ApiResponse<MentorTaskUpdateResponse> updateStudentTask(
+            @PathVariable Long studentId,
+            @PathVariable Long taskId,
+            @RequestBody MentorTaskUpdateRequest request
+    ) {
+        return ApiResponse.success(
+                mentorTaskService.updateStudentTask(studentId, taskId, request)
+        );
+    }
 
 }
 

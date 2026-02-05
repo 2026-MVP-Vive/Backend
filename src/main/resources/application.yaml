@@ -1,4 +1,14 @@
 spring:
+  logging:
+    level:
+      root: INFO
+      com.seolstudy.seolstudy_backend: DEBUG  # 내 프로젝트 패키지 경로를 입력
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 10MB
+      max-request-size: 10MB
+      resolve-lazily: true
   application:
     name: seolstudy-backend
   profiles:
@@ -28,3 +38,12 @@ spring:
       credentials:
         access-key: ${AWS_ACCESS_KEY}
         secret-key: ${AWS_SECRET_KEY}
+  jwt:
+    secret: ${JWT_SECRET_KEY}
+    expiration: 1800000
+  server:
+    tomcat:
+      # 멀티파트 헤더 크기 제한을 늘림 (기본 512B -> 2KB로 확장)
+      max-http-form-post-size: 10MB
+      # 톰캣의 커넥터 속성 중 하나로, 헤더 섹션 크기 제한을 조정함
+      max-swallow-size: -1

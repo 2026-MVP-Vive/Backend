@@ -3,6 +3,7 @@ package com.seolstudy.seolstudy_backend.mentee.domain;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 import lombok.ToString;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
@@ -14,6 +15,7 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "tasks")
 @Getter
+@Setter
 @NoArgsConstructor
 @ToString
 @EntityListeners(AuditingEntityListener.class)
@@ -71,5 +73,12 @@ public class Task {
         this.createdBy = createdBy;
         this.isMentorAssigned = false;
         this.isMentorConfirmed = false;
+    }
+
+    public void updateStudyTime(Integer studyTime) {
+        if (studyTime == null || studyTime < 0) {
+            throw new IllegalArgumentException("Study time cannot be null or negative");
+        }
+        this.studyTime = studyTime;
     }
 }

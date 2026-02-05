@@ -21,4 +21,9 @@ public class TaskMaterial {
 
     @Column(name = "file_id", nullable = false)
     private Long fileId;
+
+    public TaskMaterial(Long taskId, Long fileId) {
+        this.taskId = taskId;
+        this.fileId = fileId;
+    }
 }

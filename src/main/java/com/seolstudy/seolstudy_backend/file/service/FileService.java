@@ -2,6 +2,7 @@ package com.seolstudy.seolstudy_backend.file.service;
 
 import com.seolstudy.seolstudy_backend.file.domain.File;
 import com.seolstudy.seolstudy_backend.file.dto.FileDownloadDto;
+import com.seolstudy.seolstudy_backend.file.dto.FilePreviewDto;
 import com.seolstudy.seolstudy_backend.file.dto.FileUploadResponse;
 import com.seolstudy.seolstudy_backend.file.repository.FileRepository;
 import com.seolstudy.seolstudy_backend.global.common.ApiResponse;
@@ -11,6 +12,7 @@ import com.seolstudy.seolstudy_backend.global.util.SecurityUtil;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import net.coobird.thumbnailator.Thumbnails;
 import org.hibernate.ResourceClosedException;
 import org.hibernate.usertype.BaseUserTypeSupport;
 import org.springframework.beans.factory.annotation.Value;
@@ -25,9 +27,11 @@ import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.*;
 
+import javax.imageio.ImageIO;
+import javax.swing.*;
 import java.awt.*;
-import java.io.IOException;
-import java.io.InputStream;
+import java.awt.image.BufferedImage;
+import java.io.*;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
@@ -102,7 +106,7 @@ public class FileService {
                 .build();
     }
 
-    @Transactional
+    /** storedName으로 저장된 Resource를 반환 */
     public Resource loadFileAsResource(String storedName){
         try{
             GetObjectRequest getObjectRequest = GetObjectRequest.builder()
@@ -117,6 +121,18 @@ public class FileService {
         }
     }
 
+    public FilePreviewDto getFileInfo(Long fileId){
+        File fileEntity = fileRepository.findById(fileId)
+                .orElseThrow(() -> new BusinessException("파일을 찾을 수 없습니다.", ErrorCode.NOT_FOUND));
+        Resource resource = loadFileAsResource(fileEntity.getStoredName());
+        return FilePreviewDto.builder()
+                .originalName(fileEntity.getOriginalName())
+                .fileType(fileEntity.getFileType())
+                .resource(resource)
+                .build();
+    }
+
+    /** 파일 다운로드 */
     @Transactional
     public FileDownloadDto downloadFile(Long fileId){
         //파일이 존재하는지 확인
@@ -135,6 +151,7 @@ public class FileService {
                 .build();
     }
 
+    /** 파일 삭제 */
     @Transactional
     public ApiResponse<Void> deleteFile(@PathVariable Long fileId) {
         File fileEntity = fileRepository.findById(fileId)
@@ -154,6 +171,45 @@ public class FileService {
         return ApiResponse.success("파일이 삭제되었습니다.");
     }
 
+    public byte[] generateThumbnail(Long fileId, int width, int height) {
+        File fileEntity = fileRepository.findById(fileId)
+                .orElseThrow(() -> new BusinessException("파일을 찾을 수 없습니다.", ErrorCode.NOT_FOUND));
+
+        try (ResponseInputStream<GetObjectResponse> s3InputStream = s3Client.getObject(
+                GetObjectRequest.builder()
+                        .bucket(bucket)
+                        .key(fileEntity.getStoredName())
+                        .build())) {
+
+            // 1. 데이터를 바이트 배열로 먼저 가져옵니다.
+            byte[] bytes = s3InputStream.readAllBytes();
+            log.info("S3 파일 읽기 성공: {} ({} bytes)", fileEntity.getOriginalName(), bytes.length);
+
+            // 2. 바이트 배열을 기반으로 BufferedImage를 생성합니다.
+            ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
+            BufferedImage originalImage = ImageIO.read(bais);
+
+            // 만약 여기서 null이 나오면 진짜로 자바가 이 파일을 못 읽는 겁니다.
+            if (originalImage == null) {
+                log.error("ImageIO.read() 결과가 null입니다. 지원하지 않는 포맷일 수 있습니다.");
+                throw new BusinessException("지원하지 않는 이미지 형식입니다.", ErrorCode.BAD_REQUEST);
+            }
+
+            // 3. Thumbnailator를 이용해 리사이징
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            Thumbnails.of(originalImage)
+                    .size(width, height)
+                    .outputFormat("jpg") // 컨트롤러의 IMAGE_JPEG와 일치시킴
+                    .toOutputStream(outputStream);
+
+            log.info("썸네일 생성 완료: {}x{}", width, height);
+            return outputStream.toByteArray();
+
+        } catch (Exception e) {
+            log.error("썸네일 생성 중 최종 실패: {}", e.getMessage());
+            throw new BusinessException("썸네일 생성에 실패했습니다.", ErrorCode.INTERNAL_ERROR);
+        }
+    }
 
     /** 파일명 맨뒤 확장자만 반환하는 메서드 ex) ex.pdf에서 pdf를 반환 */
     private String extractExtension(String fileName){

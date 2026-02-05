@@ -1,8 +1,4 @@
 spring:
-  logging:
-    level:
-      root: INFO
-      com.seolstudy.seolstudy_backend: DEBUG  # 내 프로젝트 패키지 경로를 입력
   servlet:
     multipart:
       enabled: true

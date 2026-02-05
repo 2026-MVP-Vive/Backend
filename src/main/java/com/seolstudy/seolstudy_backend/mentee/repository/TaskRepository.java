@@ -8,4 +8,6 @@ import java.util.List;
 
 public interface TaskRepository extends JpaRepository<Task, Long> {
     List<Task> findAllByMenteeIdAndTaskDate(Long menteeId, LocalDate taskDate);
+
+    List<Task> findAllByMenteeIdAndTaskDateBetween(Long menteeId, LocalDate startDate, LocalDate endDate);
 }

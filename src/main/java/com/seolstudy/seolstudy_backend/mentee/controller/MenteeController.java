@@ -6,6 +6,7 @@ import com.seolstudy.seolstudy_backend.mentee.service.MenteeFeedbackService;
 import com.seolstudy.seolstudy_backend.mentee.service.SubmissionService;
 import com.seolstudy.seolstudy_backend.mentee.service.TaskService;
 import com.seolstudy.seolstudy_backend.mentee.service.AchievementService;
+import com.seolstudy.seolstudy_backend.mentee.service.MenteeReportService;
 import java.time.LocalDate;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -25,6 +26,7 @@ public class MenteeController {
     private final MenteeFeedbackService menteeFeedbackService;
     private final SubmissionService submissionService;
     private final AchievementService achievementService;
+    private final MenteeReportService menteeReportService;
 
     private final SecurityUtil securityUtil;
 
@@ -129,6 +131,30 @@ public class MenteeController {
                 : LocalDate.now().with(java.time.temporal.TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY));
 
         AchievementResponse response = achievementService.getAchievement(menteeId, start, end);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("success", true);
+        result.put("data", response);
+
+        return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/weekly-reports")
+    public ResponseEntity<Map<String, Object>> getWeeklyReports() {
+        Long menteeId = securityUtil.getCurrentUserId();
+        WeeklyReportListResponse response = menteeReportService.getWeeklyReports(menteeId);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("success", true);
+        result.put("data", response);
+
+        return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/weekly-reports/{reportId}")
+    public ResponseEntity<Map<String, Object>> getWeeklyReportDetail(@PathVariable("reportId") Long reportId) {
+        Long menteeId = securityUtil.getCurrentUserId();
+        WeeklyReportDetailResponse response = menteeReportService.getWeeklyReportDetail(menteeId, reportId);
 
         Map<String, Object> result = new HashMap<>();
         result.put("success", true);

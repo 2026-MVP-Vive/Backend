@@ -4,6 +4,7 @@ import com.seolstudy.seolstudy_backend.global.util.SecurityUtil;
 import com.seolstudy.seolstudy_backend.mentee.dto.AchievementResponse;
 import com.seolstudy.seolstudy_backend.mentee.service.AchievementService;
 import com.seolstudy.seolstudy_backend.mentee.service.MenteeFeedbackService;
+import com.seolstudy.seolstudy_backend.mentee.service.MenteeReportService;
 import com.seolstudy.seolstudy_backend.mentee.service.SubmissionService;
 import com.seolstudy.seolstudy_backend.mentee.service.TaskService;
 import org.junit.jupiter.api.DisplayName;
@@ -27,47 +28,50 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc(addFilters = false)
 class MenteeAchievementControllerTest {
 
-    @Autowired
-    private MockMvc mockMvc;
+        @Autowired
+        private MockMvc mockMvc;
 
-    @MockBean
-    private TaskService taskService;
+        @MockBean
+        private TaskService taskService;
 
-    @MockBean
-    private MenteeFeedbackService menteeFeedbackService;
+        @MockBean
+        private MenteeFeedbackService menteeFeedbackService;
 
-    @MockBean
-    private SubmissionService submissionService;
+        @MockBean
+        private SubmissionService submissionService;
 
-    @MockBean
-    private AchievementService achievementService;
+        @MockBean
+        private AchievementService achievementService;
 
-    @MockBean
-    private SecurityUtil securityUtil;
+        @MockBean
+        private SecurityUtil securityUtil;
 
-    @Test
-    @DisplayName("성취도 조회 API")
-    void getAchievement() throws Exception {
-        // given
-        Long menteeId = 1L;
-        given(securityUtil.getCurrentUserId()).willReturn(menteeId);
+        @MockBean
+        private MenteeReportService menteeReportService;
 
-        AchievementResponse response = AchievementResponse.builder()
-                .period(AchievementResponse.Period.builder()
-                        .startDate(LocalDate.of(2025, 1, 20))
-                        .endDate(LocalDate.of(2025, 1, 27))
-                        .build())
-                .build();
+        @Test
+        @DisplayName("성취도 조회 API")
+        void getAchievement() throws Exception {
+                // given
+                Long menteeId = 1L;
+                given(securityUtil.getCurrentUserId()).willReturn(menteeId);
 
-        given(achievementService.getAchievement(eq(menteeId), any(), any()))
-                .willReturn(response);
+                AchievementResponse response = AchievementResponse.builder()
+                                .period(AchievementResponse.Period.builder()
+                                                .startDate(LocalDate.of(2025, 1, 20))
+                                                .endDate(LocalDate.of(2025, 1, 27))
+                                                .build())
+                                .build();
 
-        // when & then
-        mockMvc.perform(get("/api/v1/mentee/achievement")
-                .param("startDate", "2025-01-20")
-                .param("endDate", "2025-01-27"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data.period.startDate").value("2025-01-20"));
-    }
+                given(achievementService.getAchievement(eq(menteeId), any(), any()))
+                                .willReturn(response);
+
+                // when & then
+                mockMvc.perform(get("/api/v1/mentee/achievement")
+                                .param("startDate", "2025-01-20")
+                                .param("endDate", "2025-01-27"))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.success").value(true))
+                                .andExpect(jsonPath("$.data.period.startDate").value("2025-01-20"));
+        }
 }

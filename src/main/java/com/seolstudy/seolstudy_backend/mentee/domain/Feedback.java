@@ -3,6 +3,7 @@ package com.seolstudy.seolstudy_backend.mentee.domain;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 import lombok.ToString;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
@@ -13,6 +14,7 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "feedbacks")
 @Getter
+@Setter
 @NoArgsConstructor
 @ToString
 @EntityListeners(AuditingEntityListener.class)

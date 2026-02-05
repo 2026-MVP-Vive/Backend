@@ -40,6 +40,6 @@ public class GlobalExceptionHandler {
     // 3. 그 외 모든 예외 -> INTERNAL_ERROR
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleAllException(Exception e) {
-        return makeErrorResponse(ErrorCode.INTERNAL_ERROR, "서버 내부 오류가 발생했습니다.");
+        return makeErrorResponse(ErrorCode.INTERNAL_ERROR, e.getMessage());
     }
 }

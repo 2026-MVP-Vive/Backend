@@ -16,8 +16,7 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<TokenResponseDto>> login(@RequestBody LoginRequestDto loginRequestDto){
-        String token = authService.login(loginRequestDto);
-        TokenResponseDto responseData = new TokenResponseDto(token, "Bearer");
-        return ResponseEntity.ok(ApiResponse.success(responseData));
+        TokenResponseDto responseDto = authService.login(loginRequestDto);
+        return ResponseEntity.ok(ApiResponse.success(responseDto));
     }
 }

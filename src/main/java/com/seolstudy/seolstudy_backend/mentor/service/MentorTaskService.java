@@ -264,6 +264,25 @@ public class MentorTaskService {
         );
     }
 
+    @Transactional
+    public void deleteStudentTask(Long studentId, Long taskId) {
 
+        // 1️⃣ Task 존재 확인
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new NoSuchElementException("할 일을 찾을 수 없습니다."));
+
+        // 2️⃣ 해당 멘티의 할 일인지 검증
+        if (!task.getMenteeId().equals(studentId)) {
+            throw new IllegalArgumentException("해당 멘티의 할 일이 아닙니다.");
+        }
+
+        // 3️⃣ 연관 데이터 먼저 삭제 (명시적으로)
+        taskMaterialRepository.deleteByTaskId(taskId);
+        submissionRepository.deleteByTaskId(taskId);
+        feedbackRepository.deleteByTaskId(taskId);
+
+        // 4️⃣ Task 삭제
+        taskRepository.delete(task);
+    }
 
 }

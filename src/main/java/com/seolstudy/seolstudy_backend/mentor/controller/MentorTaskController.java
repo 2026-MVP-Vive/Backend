@@ -86,5 +86,14 @@ public class MentorTaskController {
         );
     }
 
+    @DeleteMapping("/students/{studentId}/tasks/{taskId}")
+    public ApiResponse<Void> deleteStudentTask(
+            @PathVariable Long studentId,
+            @PathVariable Long taskId
+    ) {
+        mentorTaskService.deleteStudentTask(studentId, taskId);
+        return ApiResponse.success(null);
+    }
+
 }
 

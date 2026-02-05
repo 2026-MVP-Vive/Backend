@@ -11,6 +11,7 @@ public interface FeedbackRepository extends JpaRepository<Feedback, Long> {
     boolean existsByTaskId(Long taskId);
 
     Feedback findByTaskId(Long taskId);
+    void deleteByTaskId(Long taskId);
 
     // 멘티의 모든 피드백 조회 (최근 날짜 계산용)
     List<Feedback> findAllByTaskIdIn(List<Long> taskIds);

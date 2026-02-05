@@ -30,4 +30,14 @@ public class JwtAuthenticationFilter extends GenericFilterBean {
         }
         chain.doFilter(request, response);
     }
+
+    // 테스트용
+//    protected boolean shouldNotFilter(HttpServletRequest request) {
+//        String path = request.getRequestURI();
+//
+//        // 🔥 테스트용: mentor API는 JWT 검사 안 함
+//        return path.startsWith("/api/v1/mentor/")
+//                || path.startsWith("/api/v1/auth/");
+//    }
+
 }

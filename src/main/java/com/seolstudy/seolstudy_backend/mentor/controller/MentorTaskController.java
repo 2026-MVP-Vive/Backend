@@ -7,7 +7,9 @@ package com.seolstudy.seolstudy_backend.mentor.controller;
 // PATCH  /mentor/students/{id}/tasks/{taskId}/confirm
 
 import com.seolstudy.seolstudy_backend.global.common.ApiResponse;
+import com.seolstudy.seolstudy_backend.mentor.dto.request.MentorTaskCreateRequest;
 import com.seolstudy.seolstudy_backend.mentor.dto.response.MentorStudentTaskResponse;
+import com.seolstudy.seolstudy_backend.mentor.dto.response.MentorTaskCreateResponse;
 import com.seolstudy.seolstudy_backend.mentor.service.MentorTaskService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -30,5 +32,15 @@ public class MentorTaskController {
                 mentorTaskService.getStudentTasks(studentId, date)
         );
     }
+    @PostMapping("/students/{studentId}/tasks")
+    public ApiResponse<MentorTaskCreateResponse> createStudentTask(
+            @PathVariable Long studentId,
+            @RequestBody MentorTaskCreateRequest request
+    ) {
+        return ApiResponse.success(
+                mentorTaskService.createStudentTask(studentId, request)
+        );
+    }
+
 }
 

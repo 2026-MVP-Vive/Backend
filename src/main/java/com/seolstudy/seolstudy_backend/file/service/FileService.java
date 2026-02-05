@@ -4,7 +4,7 @@ import com.seolstudy.seolstudy_backend.file.domain.File;
 import com.seolstudy.seolstudy_backend.file.dto.FileDownloadDto;
 import com.seolstudy.seolstudy_backend.file.dto.FilePreviewDto;
 import com.seolstudy.seolstudy_backend.file.dto.FileUploadResponse;
-import com.seolstudy.seolstudy_backend.file.repository.FileRepository;
+import com.seolstudy.seolstudy_backend.global.file.repository.FileRepository;
 import com.seolstudy.seolstudy_backend.global.common.ApiResponse;
 import com.seolstudy.seolstudy_backend.global.error.BusinessException;
 import com.seolstudy.seolstudy_backend.global.error.ErrorCode;

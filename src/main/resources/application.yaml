@@ -37,9 +37,3 @@ spring:
   jwt:
     secret: ${JWT_SECRET_KEY}
     expiration: 1800000
-  server:
-    tomcat:
-      # 멀티파트 헤더 크기 제한을 늘림 (기본 512B -> 2KB로 확장)
-      max-http-form-post-size: 10MB
-      # 톰캣의 커넥터 속성 중 하나로, 헤더 섹션 크기 제한을 조정함
-      max-swallow-size: -1

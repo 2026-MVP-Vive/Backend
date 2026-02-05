@@ -1,5 +1,7 @@
 package com.seolstudy.seolstudy_backend.mentor.service;
 
+import com.seolstudy.seolstudy_backend.global.file.domain.File;
+import com.seolstudy.seolstudy_backend.global.file.service.FileService;
 import com.seolstudy.seolstudy_backend.mentee.domain.*;
 import com.seolstudy.seolstudy_backend.mentee.dto.SubmissionResponse;
 import com.seolstudy.seolstudy_backend.mentee.repository.*;
@@ -9,11 +11,13 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.IOException;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.NoSuchElementException;
 import com.seolstudy.seolstudy_backend.global.util.SecurityUtil;
 import com.seolstudy.seolstudy_backend.mentee.repository.SolutionRepository;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 @RequiredArgsConstructor
@@ -27,6 +31,7 @@ public class MentorTaskService {
     private final FeedbackRepository feedbackRepository;
     private final SolutionRepository solutionRepository;
     private final TaskMaterialRepository taskMaterialRepository;
+    private final FileService fileService;
     public MentorStudentTaskResponse getStudentTasks(Long studentId, LocalDate date) {
 
         // 나중에 access token발급 후에 추가해야함 (테스트는 security config 테스트용으로 테스트)
@@ -146,5 +151,68 @@ public class MentorTaskService {
                 materials
         );
     }
+
+    @Transactional
+    public MentorTaskCreateResponse createStudentTaskMultipart(
+            Long studentId,
+            String title,
+            LocalDate date,
+            Long goalId,
+            List<MultipartFile> materials
+    ) {
+
+        Solution solution = goalId == null ? null :
+                solutionRepository.findById(goalId)
+                        .orElseThrow(() -> new NoSuchElementException("목표 없음"));
+
+        Task task = new Task(studentId, title, date, null, studentId);
+        task.setMentorAssigned(true);
+
+        if (solution != null) {
+            task.setSolution(solution);
+            task.setSubject(solution.getSubject());
+        }
+
+        taskRepository.save(task);
+
+        List<MaterialResponse> materialResponses = List.of();
+
+        if (materials != null && !materials.isEmpty()) {
+            materialResponses = materials.stream()
+                    .map(file -> {
+                        try {
+                            File saved = fileService.saveFile(
+                                    file,
+                                    File.FileCategory.MATERIAL,
+                                    studentId
+                            );
+
+                            taskMaterialRepository.save(
+                                    new TaskMaterial(task.getId(), saved.getId())
+                            );
+
+                            return new MaterialResponse(
+                                    saved.getId(),
+                                    saved.getOriginalName(),
+                                    "/api/v1/files/" + saved.getId() + "/download"
+                            );
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                    })
+                    .toList();
+        }
+
+        return new MentorTaskCreateResponse(
+                task.getId(),
+                task.getTitle(),
+                task.getCreatedAt(),
+                task.getSubject(),
+                solution == null ? null :
+                        new GoalResponse(solution.getId(), solution.getTitle()),
+                materialResponses
+        );
+    }
+
 
 }

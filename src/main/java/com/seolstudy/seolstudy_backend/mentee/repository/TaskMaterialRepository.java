@@ -9,4 +9,5 @@ public interface TaskMaterialRepository extends JpaRepository<TaskMaterial, Long
     int countByTaskId(Long taskId);
 
     List<TaskMaterial> findAllByTaskId(Long taskId);
+    void deleteByTaskId(Long taskId);
 }

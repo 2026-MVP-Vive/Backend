@@ -49,7 +49,7 @@ public class FileService {
     private String bucket;
 
     @Transactional
-    public List<FileUploadResponse> uploadFiles(List<MultipartFile> multipartFiles, String type){
+    public List<FileUploadResponse> uploadFiles(List<MultipartFile> multipartFiles, File.FileCategory type){
         if(multipartFiles == null || multipartFiles.isEmpty()){
             throw new BusinessException("업로드할 파일이 존재하지 않습니다.", ErrorCode.NOT_FOUND);
         }
@@ -58,12 +58,14 @@ public class FileService {
                 .collect(Collectors.toList());
     }
 
-    /** 파일 업로드 */
+    /** 파일 업로드
+     *  멘티 또는 멘토가 쓰는 파일을 저장 시 자신의 id를 uploaderId로 전달
+     * */
     @Transactional
-    public FileUploadResponse uploadFile(MultipartFile multipartFile, String type){
+    public FileUploadResponse uploadFile(MultipartFile multipartFile, File.FileCategory type){
         String originalName = multipartFile.getOriginalFilename();
         /** 파일명 중복 방지를 위해 S3 버킷에 저장할 파일 이름 앞에 랜덤 ID를 부여 */
-        String path = type.toLowerCase() + "/" + LocalDate.now();
+        String path = type + "/" + LocalDate.now();
         String storedName = path + "/" + UUID.randomUUID().toString() + "_" + originalName;
         String contentType = multipartFile.getContentType();
 
@@ -83,15 +85,62 @@ public class FileService {
         String s3Url = s3Client.utilities()
                 .getUrl(GetUrlRequest.builder().bucket(bucket).key(storedName).build()).toString();
 
-        com.seolstudy.seolstudy_backend.global.file.domain.File fileEntity = fileRepository.save(com.seolstudy.seolstudy_backend.global.file.domain.File
+        File fileEntity = fileRepository.save(com.seolstudy.seolstudy_backend.global.file.domain.File
                 .builder()
                 .originalName(originalName)
                 .storedName(storedName)
                 .filePath(s3Url)
                 .fileType(contentType)
                 .fileSize(multipartFile.getSize())
-                .category(com.seolstudy.seolstudy_backend.global.file.domain.File.FileCategory.valueOf(type.toUpperCase()))
+                .category(type)
                 .uploaderId(securityUtil.getCurrentUserId())
+                .build());
+        return FileUploadResponse.builder()
+                .id(fileEntity.getId())
+                .fileName(originalName)
+                .fileType(extractExtension(originalName))
+                .fileSize(fileEntity.getFileSize())
+                .url("/api/v1/files/" + fileEntity.getId())
+                .build();
+    }
+
+    /**
+     *  멘토가 멘티에게 과제 생성해줄 때 사용하는 과제 업로드 로직
+     *  멘토가 부여시 학생 ID를 uploaderId로 전달
+     * */
+    @Transactional
+    public FileUploadResponse uploadFile(MultipartFile multipartFile, File.FileCategory type, Long studentId){
+        String originalName = multipartFile.getOriginalFilename();
+        /** 파일명 중복 방지를 위해 S3 버킷에 저장할 파일 이름 앞에 랜덤 ID를 부여 */
+        String path = type + "/" + LocalDate.now();
+        String storedName = path + "/" + UUID.randomUUID().toString() + "_" + originalName;
+        String contentType = multipartFile.getContentType();
+
+        try{
+            PutObjectRequest putObjectRequest = PutObjectRequest.builder()
+                    .bucket(bucket)
+                    .key(storedName)
+                    .contentType(contentType)
+                    .build();
+            s3Client.putObject(putObjectRequest,
+                    RequestBody.fromInputStream(multipartFile.getInputStream(), multipartFile.getSize()));
+        } catch(IOException e){
+            log.error("파일 업로드 실패: {}", originalName, e);
+            throw new BusinessException("파일 업로드 도중 에러가 발생했습니다.", ErrorCode.INTERNAL_ERROR);
+        }
+
+        String s3Url = s3Client.utilities()
+                .getUrl(GetUrlRequest.builder().bucket(bucket).key(storedName).build()).toString();
+
+        File fileEntity = fileRepository.save(com.seolstudy.seolstudy_backend.global.file.domain.File
+                .builder()
+                .originalName(originalName)
+                .storedName(storedName)
+                .filePath(s3Url)
+                .fileType(contentType)
+                .fileSize(multipartFile.getSize())
+                .category(type)
+                .uploaderId(studentId)
                 .build());
         return FileUploadResponse.builder()
                 .id(fileEntity.getId())
@@ -118,7 +167,7 @@ public class FileService {
     }
 
     public FilePreviewDto getFileInfo(Long fileId){
-        com.seolstudy.seolstudy_backend.global.file.domain.File fileEntity = fileRepository.findById(fileId)
+        File fileEntity = fileRepository.findById(fileId)
                 .orElseThrow(() -> new BusinessException("파일을 찾을 수 없습니다.", ErrorCode.NOT_FOUND));
         Resource resource = loadFileAsResource(fileEntity.getStoredName());
         return FilePreviewDto.builder()
@@ -224,4 +273,42 @@ public class FileService {
                 .orElseThrow(() -> new BusinessException("프로필 이미지를 찾을 수 없습니다.", ErrorCode.NOT_FOUND));
         return file.getFilePath();
     }
+
+
+    /** 로컬에 파일 저장하는 테스트 코드 */
+//    @Transactional
+//    public File saveFile(MultipartFile multipartFile, File.FileCategory category, Long uploaderId) throws IOException {
+//        if (multipartFile.isEmpty()) {
+//            throw new RuntimeException("File is empty");
+//        }
+//
+//        String originalName = multipartFile.getOriginalFilename();
+//        String extension = "";
+//        if (originalName != null && originalName.contains(".")) {
+//            extension = originalName.substring(originalName.lastIndexOf("."));
+//        }
+//
+//        String storedName = UUID.randomUUID().toString() + extension;
+//        String uploadDir = "uploads";
+//        Path uploadPath = Paths.get(uploadDir).toAbsolutePath();
+//
+//        if (!Files.exists(uploadPath)) {
+//            Files.createDirectories(uploadPath);
+//        }
+//
+//        Path filePath = uploadPath.resolve(storedName);
+//        multipartFile.transferTo(filePath.toFile());
+//
+//        File fileEntity = File.builder()
+//                .originalName(originalName)
+//                .storedName(storedName)
+//                .filePath(filePath.toString())
+//                .fileType(multipartFile.getContentType())
+//                .fileSize(multipartFile.getSize())
+//                .category(category)
+//                .uploaderId(uploaderId)
+//                .build();
+//
+//        return fileRepository.save(fileEntity);
+//    }
 }

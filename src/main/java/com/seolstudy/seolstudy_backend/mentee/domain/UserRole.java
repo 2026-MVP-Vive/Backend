@@ -1,4 +1,4 @@
-package com.seolstudy.seolstudy_backend.auth.entity;
+package com.seolstudy.seolstudy_backend.mentee.domain;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -10,7 +10,7 @@ import lombok.RequiredArgsConstructor;
 
 @Getter
 @RequiredArgsConstructor
-public enum Role {
+public enum UserRole {
     MENTEE("ROLE_MENTEE", "멘티"),
     MENTOR("ROLE_MENTOR", "멘토");
 

@@ -2,7 +2,6 @@ package com.seolstudy.seolstudy_backend.auth.dto;
 
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.seolstudy.seolstudy_backend.auth.entity.Member;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;

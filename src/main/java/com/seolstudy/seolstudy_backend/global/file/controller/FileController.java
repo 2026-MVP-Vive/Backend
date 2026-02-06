@@ -1,5 +1,6 @@
 package com.seolstudy.seolstudy_backend.global.file.controller;
 
+import com.seolstudy.seolstudy_backend.global.file.domain.File;
 import com.seolstudy.seolstudy_backend.global.file.dto.FileDownloadDto;
 import com.seolstudy.seolstudy_backend.global.file.dto.FilePreviewDto;
 import com.seolstudy.seolstudy_backend.global.file.dto.FileUploadResponse;
@@ -29,7 +30,7 @@ public class FileController {
     /** 파일 업로드 API 호출 */
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse<List<FileUploadResponse>>> uploadFiles(@RequestParam("files") List<MultipartFile> files,
-                                                                             @RequestParam("type") String type){
+                                                                             @RequestParam("type") File.FileCategory type){
         return ResponseEntity.ok(ApiResponse.success(fileService.uploadFiles(files, type)));
     }
 

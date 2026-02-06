@@ -2,11 +2,13 @@ package com.seolstudy.seolstudy_backend.mentee.controller;
 
 import com.seolstudy.seolstudy_backend.global.util.SecurityUtil;
 import com.seolstudy.seolstudy_backend.mentee.dto.*;
+import com.seolstudy.seolstudy_backend.mentee.dto.MonthlyReportDetailResponse;
 import com.seolstudy.seolstudy_backend.mentee.service.MenteeFeedbackService;
 import com.seolstudy.seolstudy_backend.mentee.service.SubmissionService;
 import com.seolstudy.seolstudy_backend.mentee.service.TaskService;
 import com.seolstudy.seolstudy_backend.mentee.service.AchievementService;
 import com.seolstudy.seolstudy_backend.mentee.service.MenteeReportService;
+import com.seolstudy.seolstudy_backend.mentee.service.PlannerService;
 import java.time.LocalDate;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -27,6 +29,7 @@ public class MenteeController {
     private final SubmissionService submissionService;
     private final AchievementService achievementService;
     private final MenteeReportService menteeReportService;
+    private final PlannerService plannerService;
 
     private final SecurityUtil securityUtil;
 
@@ -155,6 +158,31 @@ public class MenteeController {
     public ResponseEntity<Map<String, Object>> getWeeklyReportDetail(@PathVariable("reportId") Long reportId) {
         Long menteeId = securityUtil.getCurrentUserId();
         WeeklyReportDetailResponse response = menteeReportService.getWeeklyReportDetail(menteeId, reportId);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("success", true);
+        result.put("data", response);
+
+        return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/monthly-reports/{reportId}")
+    public ResponseEntity<Map<String, Object>> getMonthlyReportDetail(@PathVariable("reportId") Long reportId) {
+        Long menteeId = securityUtil.getCurrentUserId();
+        MonthlyReportDetailResponse response = menteeReportService.getMonthlyReportDetail(menteeId, reportId);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("success", true);
+        result.put("data", response);
+
+        return ResponseEntity.ok(result);
+    }
+
+    @PostMapping("/planner/{date}/complete")
+    public ResponseEntity<Map<String, Object>> completePlanner(@PathVariable("date") String dateStr) {
+        Long menteeId = securityUtil.getCurrentUserId();
+        LocalDate date = LocalDate.parse(dateStr);
+        PlannerCompletionResponse response = plannerService.completeDailyPlanner(menteeId, date);
 
         Map<String, Object> result = new HashMap<>();
         result.put("success", true);

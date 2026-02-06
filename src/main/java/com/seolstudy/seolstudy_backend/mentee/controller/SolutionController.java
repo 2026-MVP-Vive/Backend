@@ -30,3 +30,4 @@ public class SolutionController {
         return ApiResponse.success(new SolutionListResponse(solutions));
     }
 }
+

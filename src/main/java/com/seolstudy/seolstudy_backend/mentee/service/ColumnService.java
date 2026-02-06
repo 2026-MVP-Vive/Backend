@@ -26,51 +26,51 @@ import java.util.stream.Collectors;
 @Transactional(readOnly = true)
 public class ColumnService {
 
-        private final ColumnRepository columnRepository;
+    private final ColumnRepository columnRepository;
 
-        private final ColumnAttachmentRepository columnAttachmentRepository;
-        private final FileRepository fileRepository;
+    private final ColumnAttachmentRepository columnAttachmentRepository;
+    private final FileRepository fileRepository;
 
-        public ColumnListResponse getColumns(Pageable pageable) {
-                Page<ColumnEntity> columnPage = columnRepository.findAll(pageable);
+    public ColumnListResponse getColumns(Pageable pageable) {
+        Page<ColumnEntity> columnPage = columnRepository.findAll(pageable);
 
-                List<ColumnDto> columns = columnPage.getContent().stream()
-                                .map(ColumnDto::from)
-                                .collect(Collectors.toList());
+        List<ColumnDto> columns = columnPage.getContent().stream()
+                .map(ColumnDto::from)
+                .collect(Collectors.toList());
 
-                ColumnListResponse.PaginationDto pagination = ColumnListResponse.PaginationDto.builder()
-                                .page(columnPage.getNumber())
-                                .size(columnPage.getSize())
-                                .totalElements(columnPage.getTotalElements())
-                                .totalPages(columnPage.getTotalPages())
-                                .build();
+        ColumnListResponse.PaginationDto pagination = ColumnListResponse.PaginationDto.builder()
+                .page(columnPage.getNumber())
+                .size(columnPage.getSize())
+                .totalElements(columnPage.getTotalElements())
+                .totalPages(columnPage.getTotalPages())
+                .build();
 
-                return ColumnListResponse.builder()
-                                .columns(columns)
-                                .pagination(pagination)
-                                .build();
-        }
+        return ColumnListResponse.builder()
+                .columns(columns)
+                .pagination(pagination)
+                .build();
+    }
 
-        public ColumnDetailResponse getColumnDetail(Long columnId) {
-                ColumnEntity column = columnRepository.findById(columnId)
-                                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
-                                                "Column not found with id: " + columnId));
+    public ColumnDetailResponse getColumnDetail(Long columnId) {
+        ColumnEntity column = columnRepository.findById(columnId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Column not found with id: " + columnId));
 
-                List<ColumnAttachment> columnAttachments = columnAttachmentRepository.findAllByColumnId(columnId);
-                List<Long> fileIds = columnAttachments.stream()
-                                .map(ColumnAttachment::getFileId)
-                                .collect(Collectors.toList());
+        List<ColumnAttachment> columnAttachments = columnAttachmentRepository.findAllByColumnId(columnId);
+        List<Long> fileIds = columnAttachments.stream()
+                .map(ColumnAttachment::getFileId)
+                .collect(Collectors.toList());
 
-                List<File> files = fileRepository.findAllById(fileIds);
+        List<File> files = fileRepository.findAllById(fileIds);
 
-                List<AttachmentDto> attachments = files.stream()
-                                .map(file -> AttachmentDto.builder()
-                                                .id(file.getId())
-                                                .fileName(file.getOriginalName())
-                                                .downloadUrl("/api/v1/files/" + file.getId() + "/download")
-                                                .build())
-                                .collect(Collectors.toList());
+        List<AttachmentDto> attachments = files.stream()
+                .map(file -> AttachmentDto.builder()
+                        .id(file.getId())
+                        .fileName(file.getOriginalName())
+                        .downloadUrl("/api/v1/files/" + file.getId() + "/download")
+                        .build())
+                .collect(Collectors.toList());
 
-                return ColumnDetailResponse.of(column, attachments);
-        }
+        return ColumnDetailResponse.of(column, attachments);
+    }
 }

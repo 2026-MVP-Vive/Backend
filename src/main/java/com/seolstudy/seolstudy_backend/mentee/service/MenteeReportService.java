@@ -16,55 +16,55 @@ import java.util.stream.Collectors;
 @Transactional(readOnly = true)
 public class MenteeReportService {
 
-    private final WeeklyReportRepository weeklyReportRepository;
+        private final WeeklyReportRepository weeklyReportRepository;
 
-    public WeeklyReportListResponse getWeeklyReports(Long menteeId) {
-        List<WeeklyReport> reports = weeklyReportRepository.findAllByMenteeIdOrderByWeekNumberDesc(menteeId);
+        public WeeklyReportListResponse getWeeklyReports(Long menteeId) {
+                List<WeeklyReport> reports = weeklyReportRepository.findAllByMenteeIdOrderByWeekNumberDesc(menteeId);
 
-        List<WeeklyReportListResponse.WeeklyReportItem> reportItems = reports.stream()
-                .map(report -> WeeklyReportListResponse.WeeklyReportItem.builder()
-                        .id(report.getId())
-                        .week(report.getWeekNumber())
-                        .title(report.getTitle())
-                        .startDate(report.getStartDate())
-                        .endDate(report.getEndDate())
-                        .isAvailable(true) // Assuming all retrieved reports are available
-                        .build())
-                .collect(Collectors.toList());
+                List<WeeklyReportListResponse.WeeklyReportItem> reportItems = reports.stream()
+                                .map(report -> WeeklyReportListResponse.WeeklyReportItem.builder()
+                                                .id(report.getId())
+                                                .week(report.getWeekNumber())
+                                                .title(report.getTitle())
+                                                .startDate(report.getStartDate())
+                                                .endDate(report.getEndDate())
+                                                .isAvailable(true) // Assuming all retrieved reports are available
+                                                .build())
+                                .collect(Collectors.toList());
 
-        return WeeklyReportListResponse.builder()
-                .reports(reportItems)
-                .build();
-    }
-
-    public WeeklyReportDetailResponse getWeeklyReportDetail(Long menteeId, Long reportId) {
-        WeeklyReport report = weeklyReportRepository.findById(reportId)
-                .orElseThrow(() -> new IllegalArgumentException("해당 리포트를 찾을 수 없습니다."));
-
-        if (!report.getMenteeId().equals(menteeId)) {
-            throw new IllegalArgumentException("자신의 리포트만 조회할 수 있습니다.");
+                return WeeklyReportListResponse.builder()
+                                .reports(reportItems)
+                                .build();
         }
 
-        List<WeeklyReportDetailResponse.SubjectReportItem> subjects = report.getSubjectReports().stream()
-                .map(s -> WeeklyReportDetailResponse.SubjectReportItem.builder()
-                        .subject(s.getSubject().name())
-                        .subjectName(s.getSubject().getDescription())
-                        .completionRate(s.getCompletionRate())
-                        .totalStudyTime(s.getTotalStudyTime())
-                        .feedback(s.getFeedback())
-                        .build())
-                .collect(Collectors.toList());
+        public WeeklyReportDetailResponse getWeeklyReportDetail(Long menteeId, Long reportId) {
+                WeeklyReport report = weeklyReportRepository.findById(reportId)
+                                .orElseThrow(() -> new IllegalArgumentException("해당 리포트를 찾을 수 없습니다."));
 
-        return WeeklyReportDetailResponse.builder()
-                .id(report.getId())
-                .week(report.getWeekNumber())
-                .title(report.getTitle())
-                .startDate(report.getStartDate())
-                .endDate(report.getEndDate())
-                .summary(report.getSummary())
-                .overallFeedback(report.getOverallFeedback())
-                .createdAt(report.getCreatedAt().toLocalDate())
-                .subjectReports(subjects)
-                .build();
-    }
+                if (!report.getMenteeId().equals(menteeId)) {
+                        throw new IllegalArgumentException("자신의 리포트만 조회할 수 있습니다.");
+                }
+
+                List<WeeklyReportDetailResponse.SubjectReportItem> subjects = report.getSubjectReports().stream()
+                                .map(s -> WeeklyReportDetailResponse.SubjectReportItem.builder()
+                                                .subject(s.getSubject().name())
+                                                .subjectName(s.getSubject().getDescription())
+                                                .completionRate(s.getCompletionRate())
+                                                .totalStudyTime(s.getTotalStudyTime())
+                                                .feedback(s.getFeedback())
+                                                .build())
+                                .collect(Collectors.toList());
+
+                return WeeklyReportDetailResponse.builder()
+                                .id(report.getId())
+                                .week(report.getWeekNumber())
+                                .title(report.getTitle())
+                                .startDate(report.getStartDate())
+                                .endDate(report.getEndDate())
+                                .summary(report.getSummary())
+                                .overallFeedback(report.getOverallFeedback())
+                                .createdAt(report.getCreatedAt().toLocalDate())
+                                .subjectReports(subjects)
+                                .build();
+        }
 }

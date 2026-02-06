@@ -62,7 +62,7 @@ public class SolutionService {
                                 .id(file.getId())
                                 .fileName(file.getOriginalName())
                                 .fileType(file.getFileType()) // Assuming fileType in File entity maps to what is
-                                                              // needed, or extension
+                                // needed, or extension
                                 .downloadUrl("/api/v1/files/" + file.getId() + "/download")
                                 .build();
                     })

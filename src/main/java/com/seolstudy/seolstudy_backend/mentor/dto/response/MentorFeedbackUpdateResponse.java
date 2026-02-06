@@ -14,4 +14,3 @@ public class MentorFeedbackUpdateResponse {
     private boolean isImportant;
     private LocalDateTime updatedAt;
 }
-

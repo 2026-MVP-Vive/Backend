@@ -6,4 +6,3 @@ import lombok.Getter;
 public class MentorTaskConfirmRequest {
     private Boolean confirmed;
 }
-

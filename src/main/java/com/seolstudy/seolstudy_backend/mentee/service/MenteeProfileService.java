@@ -17,38 +17,38 @@ import java.time.LocalDate;
 @Transactional(readOnly = true)
 public class MenteeProfileService {
 
-        private final UserRepository userRepository;
-        private final MentorMenteeRepository mentorMenteeRepository;
-        private final TaskRepository taskRepository;
+    private final UserRepository userRepository;
+    private final MentorMenteeRepository mentorMenteeRepository;
+    private final TaskRepository taskRepository;
 
-        @Transactional
-        public MenteeProfileResponse getMenteeProfile(Long menteeId) {
-                User mentee = userRepository.findById(menteeId)
-                                .orElseThrow(() -> new IllegalArgumentException(
-                                                "Mentee not found with id: " + menteeId));
+    @Transactional
+    public MenteeProfileResponse getMenteeProfile(Long menteeId) {
+        User mentee = userRepository.findById(menteeId)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Mentee not found with id: " + menteeId));
 
-                MentorMentee mentorMentee = mentorMenteeRepository.findByMenteeId(menteeId)
-                                .orElseThrow(() -> new IllegalArgumentException(
-                                                "Mentor not assigned for mentee: " + menteeId));
+        MentorMentee mentorMentee = mentorMenteeRepository.findByMenteeId(menteeId)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Mentor not assigned for mentee: " + menteeId));
 
-                User mentor = userRepository.findById(mentorMentee.getMentorId())
-                                .orElseThrow(
-                                                () -> new IllegalArgumentException("Mentor not found with id: "
-                                                                + mentorMentee.getMentorId()));
+        User mentor = userRepository.findById(mentorMentee.getMentorId())
+                .orElseThrow(
+                        () -> new IllegalArgumentException("Mentor not found with id: "
+                                + mentorMentee.getMentorId()));
 
-                long totalStudyDays = taskRepository.countDistinctTaskDateByMenteeId(menteeId);
+        long totalStudyDays = taskRepository.countDistinctTaskDateByMenteeId(menteeId);
 
-                String profileImageUrl = mentee.getProfileImageId() != null
-                                ? "/api/v1/files/profile/" + mentee.getProfileImageId()
-                                : null;
+        String profileImageUrl = mentee.getProfileImageId() != null
+                ? "/api/v1/files/profile/" + mentee.getProfileImageId()
+                : null;
 
-                return MenteeProfileResponse.builder()
-                                .id(mentee.getId())
-                                .name(mentee.getName())
-                                .profileImageUrl(profileImageUrl)
-                                .mentorName(mentor.getName())
-                                .startDate(LocalDate.from(mentorMentee.getCreatedAt()))
-                                .totalStudyDays(totalStudyDays)
-                                .build();
-        }
+        return MenteeProfileResponse.builder()
+                .id(mentee.getId())
+                .name(mentee.getName())
+                .profileImageUrl(profileImageUrl)
+                .mentorName(mentor.getName())
+                .startDate(LocalDate.from(mentorMentee.getCreatedAt()))
+                .totalStudyDays(totalStudyDays)
+                .build();
+    }
 }

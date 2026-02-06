@@ -1,6 +1,7 @@
 package com.seolstudy.seolstudy_backend.mentor.service;
 
 import com.seolstudy.seolstudy_backend.global.file.domain.File;
+import com.seolstudy.seolstudy_backend.global.file.dto.FileUploadResponse;
 import com.seolstudy.seolstudy_backend.global.file.service.FileService;
 import com.seolstudy.seolstudy_backend.mentee.domain.*;
 import com.seolstudy.seolstudy_backend.mentee.dto.SubmissionResponse;
@@ -184,22 +185,26 @@ public class MentorTaskService {
             materialResponses = materials.stream()
                     .map(file -> {
                         try {
-                            File saved = fileService.saveFile(
-                                    file,
-                                    File.FileCategory.MATERIAL,
-                                    studentId
-                            );
+//                            로컬 테스트용 파일 저장 코드
+//                            File saved = fileService.saveFile(
+//                                    file,
+//                                    File.FileCategory.MATERIAL,
+//                                    studentId
+//                            );
+
+                            /** s3 버킷 파일 저장 코드 * */
+                            FileUploadResponse fileUploadResponse = fileService.uploadFile(file, File.FileCategory.MATERIAL, studentId);
 
                             taskMaterialRepository.save(
-                                    new TaskMaterial(task.getId(), saved.getId())
+                                    new TaskMaterial(task.getId(), fileUploadResponse.getId())
                             );
 
                             return new MaterialResponse(
-                                    saved.getId(),
-                                    saved.getOriginalName(),
-                                    "/api/v1/files/" + saved.getId() + "/download"
+                                    fileUploadResponse.getId(),
+                                    fileUploadResponse.getFileName(),
+                                    "/api/v1/files/" + fileUploadResponse.getId() + "/download"
                             );
-                        } catch (IOException e) {
+                        } catch (Exception e) {
                             throw new RuntimeException(e);
                         }
                     })

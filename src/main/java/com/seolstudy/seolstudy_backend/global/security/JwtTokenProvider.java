@@ -1,6 +1,6 @@
 package com.seolstudy.seolstudy_backend.global.security;
 
-import com.seolstudy.seolstudy_backend.auth.entity.Role;
+import com.seolstudy.seolstudy_backend.mentee.domain.UserRole;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.Jwts;
@@ -27,7 +27,9 @@ import java.util.Date;
 public class JwtTokenProvider {
     @Value("${jwt.secret}")
     private String secretKey; //토큰 발급 비밀키
-    private long tokenValidTime = 30 * 60 * 1000L; //토큰 유효 시간 30분
+    private final long accessTokenValidTime = 30 * 60 * 1000L; // 30분
+    private final long refreshTokenValidTime = 14 * 24 * 60 * 60 * 1000L; // 14일
+
     private final UserDetailsService userDetailService;
 
     @PostConstruct
@@ -35,15 +37,25 @@ public class JwtTokenProvider {
         secretKey = Base64.getEncoder().encodeToString(secretKey.getBytes());
     }
 
-    // JWT 토큰 생성
-    public String createToken(String userPk, Role role) {
+    // Access Token 생성
+    public String createAccessToken(String userPk, UserRole role) {
+        return createToken(userPk, role, accessTokenValidTime);
+    }
+
+    // Refresh Token 생성
+    public String createRefreshToken(String userPk, UserRole role) {
+        return createToken(userPk, role, refreshTokenValidTime);
+    }
+
+    // 공통 토큰 생성 로직
+    private String createToken(String userPk, UserRole role, long validTime) {
         Claims claims = Jwts.claims().setSubject(userPk);
         claims.put("role", role.getKey());
         Date now = new Date();
         return Jwts.builder()
                 .setClaims(claims)
                 .setIssuedAt(now)
-                .setExpiration(new Date(now.getTime() + tokenValidTime))
+                .setExpiration(new Date(now.getTime() + validTime))
                 .signWith(SignatureAlgorithm.HS256, secretKey)
                 .compact();
     }

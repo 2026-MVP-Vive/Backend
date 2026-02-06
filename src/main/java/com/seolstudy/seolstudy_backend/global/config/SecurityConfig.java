@@ -44,8 +44,12 @@ public class SecurityConfig {
 
                 //인가(Authorization) 규칙 설정
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/v1/auth/**").permitAll() // 로그인, 회원가입은 모든 사용자에게 허용
-                        .requestMatchers("/api/v1/mentor/**").permitAll() // 🔥테스트용 추가
+                        /** 테스트에 한해 모든 사용자에게 모든 API 접근을 허용
+                         *  실제 테스트 시 각 API별 권한 설정
+                         * */
+                        .requestMatchers("/api/v1/auth/**", "/api/v1/files/**", "api/v1/mentee/**"
+                        , "api/v1/mentor/**").permitAll()
+//                        .requestMatchers("/api/v1/mentor/**").hasRole("MENTOR") //권한 설
                         .anyRequest().authenticated() // 나머지 접근은 인증 필요
                 )
 

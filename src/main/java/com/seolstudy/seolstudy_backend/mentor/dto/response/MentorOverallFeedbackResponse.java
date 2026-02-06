@@ -14,4 +14,3 @@ public class MentorOverallFeedbackResponse {
     private String content;
     private LocalDateTime updatedAt;
 }
-

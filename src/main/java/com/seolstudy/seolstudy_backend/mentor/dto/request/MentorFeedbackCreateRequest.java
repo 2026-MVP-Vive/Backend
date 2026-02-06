@@ -9,4 +9,3 @@ public class MentorFeedbackCreateRequest {
     private String summary;
     private Boolean isImportant;
 }
-

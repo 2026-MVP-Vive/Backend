@@ -1,6 +1,8 @@
 package com.seolstudy.seolstudy_backend.mentee.domain;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
@@ -14,6 +16,8 @@ import java.time.LocalDateTime;
 @Table(name = "comments")
 @Getter
 @NoArgsConstructor
+@AllArgsConstructor
+@Builder
 @ToString
 @EntityListeners(AuditingEntityListener.class)
 public class Comment {

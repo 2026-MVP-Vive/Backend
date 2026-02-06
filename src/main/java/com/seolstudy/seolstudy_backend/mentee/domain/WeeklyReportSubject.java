@@ -1,6 +1,8 @@
 package com.seolstudy.seolstudy_backend.mentee.domain;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
@@ -11,6 +13,8 @@ import lombok.ToString;
 })
 @Getter
 @NoArgsConstructor
+@AllArgsConstructor
+@Builder
 @ToString
 public class WeeklyReportSubject {
 
@@ -18,8 +22,10 @@ public class WeeklyReportSubject {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "report_id", nullable = false)
-    private Long reportId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "report_id", nullable = false)
+    @ToString.Exclude
+    private WeeklyReport weeklyReport;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

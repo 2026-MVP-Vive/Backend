@@ -18,4 +18,3 @@ public class MentorTaskCreateResponse {
     private GoalResponse goal;
     private List<MaterialResponse> materials;
 }
-

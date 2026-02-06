@@ -15,4 +15,3 @@ public class MentorStudentTaskResponse {
     private List<TaskResponse> tasks;
     private List<Object> comments; // 현재는 빈 배열
 }
-

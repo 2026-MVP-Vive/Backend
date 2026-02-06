@@ -7,9 +7,11 @@ package com.seolstudy.seolstudy_backend.mentor.controller;
 // PATCH  /mentor/students/{id}/tasks/{taskId}/confirm
 
 import com.seolstudy.seolstudy_backend.global.common.ApiResponse;
+import com.seolstudy.seolstudy_backend.mentor.dto.request.MentorTaskConfirmRequest;
 import com.seolstudy.seolstudy_backend.mentor.dto.request.MentorTaskCreateRequest;
 import com.seolstudy.seolstudy_backend.mentor.dto.request.MentorTaskUpdateRequest;
 import com.seolstudy.seolstudy_backend.mentor.dto.response.MentorStudentTaskResponse;
+import com.seolstudy.seolstudy_backend.mentor.dto.response.MentorTaskConfirmResponse;
 import com.seolstudy.seolstudy_backend.mentor.dto.response.MentorTaskCreateResponse;
 import com.seolstudy.seolstudy_backend.mentor.dto.response.MentorTaskUpdateResponse;
 import com.seolstudy.seolstudy_backend.mentor.service.MentorTaskService;
@@ -95,5 +97,16 @@ public class MentorTaskController {
         return ApiResponse.success(null);
     }
 
-}
+    @PatchMapping("/students/{studentId}/tasks/{taskId}/confirm")
+    public ApiResponse<MentorTaskConfirmResponse> confirmTask(
+            @PathVariable Long studentId,
+            @PathVariable Long taskId,
+            @RequestBody MentorTaskConfirmRequest request
+    ) {
+        return ApiResponse.success(
+                mentorTaskService.confirmTask(studentId, taskId, request)
+        );
+    }
 
+
+}

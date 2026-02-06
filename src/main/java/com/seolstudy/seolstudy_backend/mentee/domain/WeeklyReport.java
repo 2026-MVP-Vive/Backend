@@ -1,9 +1,13 @@
 package com.seolstudy.seolstudy_backend.mentee.domain;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
+import java.util.ArrayList;
+import java.util.List;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
@@ -17,6 +21,8 @@ import java.time.LocalDateTime;
 })
 @Getter
 @NoArgsConstructor
+@AllArgsConstructor
+@Builder
 @ToString
 @EntityListeners(AuditingEntityListener.class)
 public class WeeklyReport {
@@ -56,4 +62,9 @@ public class WeeklyReport {
     @LastModifiedDate
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
+
+    @Builder.Default
+    @OneToMany(mappedBy = "weeklyReport", cascade = CascadeType.ALL, orphanRemoval = true)
+    @ToString.Exclude
+    private List<WeeklyReportSubject> subjectReports = new ArrayList<>();
 }

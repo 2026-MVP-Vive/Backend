@@ -1,6 +1,7 @@
 package com.seolstudy.seolstudy_backend.mentee.service;
 
 import com.seolstudy.seolstudy_backend.global.file.domain.File;
+import com.seolstudy.seolstudy_backend.global.file.dto.FileUploadResponse;
 import com.seolstudy.seolstudy_backend.global.file.service.FileService;
 import com.seolstudy.seolstudy_backend.mentee.domain.Submission;
 import com.seolstudy.seolstudy_backend.mentee.domain.Task;
@@ -37,13 +38,19 @@ public class SubmissionService {
         }
 
         try {
-            File savedFile = fileService.saveFile(file, File.FileCategory.SUBMISSION, menteeId);
+            //로컬 파일에 저장하는 코드, 로컬에서 테스트 시 FileService에 있는 saveFile 주석풀고 밑에 주석 해제한 후 테스트
+            //            File savedFile = fileService.saveFile(file, File.FileCategory.SUBMISSION, menteeId);
 
-            Submission submission = new Submission(taskId, savedFile.getId());
+            /** s3 파일 저장 코드
+             *  FileService에서 SecurityUtil 호출하여 회원 ID를 전달하므로 파라미터로 전달할 필요 X
+             * */
+            FileUploadResponse fileUploadResponse = fileService.uploadFile(file, File.FileCategory.SUBMISSION);
+
+            Submission submission = new Submission(taskId, fileUploadResponse.getId());
             submissionRepository.save(submission);
 
             return SubmissionResponse.of(submission);
-        } catch (IOException e) {
+        } catch (Exception e) {
             throw new RuntimeException("Failed to save file", e);
         }
     }

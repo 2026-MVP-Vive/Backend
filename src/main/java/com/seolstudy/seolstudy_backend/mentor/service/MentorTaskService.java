@@ -1,10 +1,12 @@
 package com.seolstudy.seolstudy_backend.mentor.service;
 
 import com.seolstudy.seolstudy_backend.global.file.domain.File;
+import com.seolstudy.seolstudy_backend.global.file.dto.FileUploadResponse;
 import com.seolstudy.seolstudy_backend.global.file.service.FileService;
 import com.seolstudy.seolstudy_backend.mentee.domain.*;
 import com.seolstudy.seolstudy_backend.mentee.dto.SubmissionResponse;
 import com.seolstudy.seolstudy_backend.mentee.repository.*;
+import com.seolstudy.seolstudy_backend.mentor.dto.request.MentorTaskConfirmRequest;
 import com.seolstudy.seolstudy_backend.mentor.dto.request.MentorTaskCreateRequest;
 import com.seolstudy.seolstudy_backend.mentor.dto.request.MentorTaskUpdateRequest;
 import com.seolstudy.seolstudy_backend.mentor.dto.response.*;
@@ -14,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.NoSuchElementException;
 import com.seolstudy.seolstudy_backend.global.util.SecurityUtil;
@@ -182,22 +185,26 @@ public class MentorTaskService {
             materialResponses = materials.stream()
                     .map(file -> {
                         try {
-                            File saved = fileService.saveFile(
-                                    file,
-                                    File.FileCategory.MATERIAL,
-                                    studentId
-                            );
+//                            로컬 테스트용 파일 저장 코드
+//                            File saved = fileService.saveFile(
+//                                    file,
+//                                    File.FileCategory.MATERIAL,
+//                                    studentId
+//                            );
+
+                            /** s3 버킷 파일 저장 코드 * */
+                            FileUploadResponse fileUploadResponse = fileService.uploadFile(file, File.FileCategory.MATERIAL, studentId);
 
                             taskMaterialRepository.save(
-                                    new TaskMaterial(task.getId(), saved.getId())
+                                    new TaskMaterial(task.getId(), fileUploadResponse.getId())
                             );
 
                             return new MaterialResponse(
-                                    saved.getId(),
-                                    saved.getOriginalName(),
-                                    "/api/v1/files/" + saved.getId() + "/download"
+                                    fileUploadResponse.getId(),
+                                    fileUploadResponse.getFileName(),
+                                    "/api/v1/files/" + fileUploadResponse.getId() + "/download"
                             );
-                        } catch (IOException e) {
+                        } catch (Exception e) {
                             throw new RuntimeException(e);
                         }
                     })
@@ -284,5 +291,41 @@ public class MentorTaskService {
         // 4️⃣ Task 삭제
         taskRepository.delete(task);
     }
+
+    @Transactional
+    public MentorTaskConfirmResponse confirmTask(
+            Long studentId,
+            Long taskId,
+            MentorTaskConfirmRequest request
+    ) {
+        if (request.getConfirmed() == null) {
+            throw new IllegalArgumentException("confirmed 값은 필수입니다.");
+        }
+
+        // 1️⃣ Task 조회
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new NoSuchElementException("할 일을 찾을 수 없습니다."));
+
+        // 2️⃣ 멘티 소유 검증
+        if (!task.getMenteeId().equals(studentId)) {
+            throw new IllegalArgumentException("해당 멘티의 할 일이 아닙니다.");
+        }
+
+        // 3️⃣ 상태 변경
+        if (request.getConfirmed()) {
+            task.setMentorConfirmed(true);
+            task.setConfirmedAt(LocalDateTime.now());
+        } else {
+            task.setMentorConfirmed(false);
+            task.setConfirmedAt(null);
+        }
+
+        return new MentorTaskConfirmResponse(
+                task.getId(),
+                task.isMentorConfirmed(),
+                task.getConfirmedAt()
+        );
+    }
+
 
 }

@@ -15,4 +15,3 @@ public class MentorTaskUpdateResponse {
     private LocalDate date;
     private LocalDateTime updatedAt;
 }
-

@@ -14,4 +14,3 @@ public interface MentorMenteeRepository extends JpaRepository<MentorMentee, Long
 
     boolean existsByMentorIdAndMenteeId(Long mentorId, Long menteeId);
 }
-

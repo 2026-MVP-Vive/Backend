@@ -1,6 +1,5 @@
 package com.seolstudy.seolstudy_backend.mentor.validator;
 
-import com.seolstudy.seolstudy_backend.auth.entity.Role;
 import com.seolstudy.seolstudy_backend.global.error.ErrorCode;
 import com.seolstudy.seolstudy_backend.global.error.GlobalExceptionHandler;
 import com.seolstudy.seolstudy_backend.mentee.domain.User;
@@ -36,5 +35,3 @@ public class MentorValidator {
         }
     }
 }
-
-

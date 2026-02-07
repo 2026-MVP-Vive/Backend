@@ -17,20 +17,20 @@ public class AuthController {
     private final AuthService authService;
 
     @PostMapping("/login")
-    public ResponseEntity<ApiResponse<TokenResponseDto>> login(@RequestBody LoginRequestDto loginRequestDto){
+    public ResponseEntity<ApiResponse<TokenResponseDto>> login(@RequestBody LoginRequestDto loginRequestDto) {
         TokenResponseDto responseDto = authService.login(loginRequestDto);
         return ResponseEntity.ok(ApiResponse.success(responseDto));
     }
 
     @PostMapping("/refresh")
-    public ResponseEntity<ApiResponse<RefreshTokenResponse>> refreshToken(@RequestBody RefreshRequest request){
+    public ResponseEntity<ApiResponse<RefreshTokenResponse>> refreshToken(@RequestBody RefreshRequest request) {
         RefreshTokenResponse tokenResponse = authService.refreshAccessToken(request.getRefreshToken());
         return ResponseEntity.ok(ApiResponse.success(tokenResponse));
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<ApiResponse<Void>> logout(){
+    public ResponseEntity<ApiResponse<Void>> logout() {
         authService.logout();
-        return ResponseEntity.ok(ApiResponse.success("로그아웃 되었습니다."));
+        return ResponseEntity.ok(ApiResponse.successMessage("로그아웃 되었습니다."));
     }
 }

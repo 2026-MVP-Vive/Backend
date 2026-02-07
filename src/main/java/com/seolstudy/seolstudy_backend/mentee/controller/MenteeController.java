@@ -9,6 +9,8 @@ import com.seolstudy.seolstudy_backend.mentee.service.TaskService;
 import com.seolstudy.seolstudy_backend.mentee.service.AchievementService;
 import com.seolstudy.seolstudy_backend.mentee.service.MenteeReportService;
 import com.seolstudy.seolstudy_backend.mentee.service.PlannerService;
+import com.seolstudy.seolstudy_backend.mentee.dto.MonthlyPlanResponse;
+import com.seolstudy.seolstudy_backend.mentee.dto.MonthlyReportListResponse;
 import java.time.LocalDate;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -170,6 +172,32 @@ public class MenteeController {
     public ResponseEntity<Map<String, Object>> getMonthlyReportDetail(@PathVariable("reportId") Long reportId) {
         Long menteeId = securityUtil.getCurrentUserId();
         MonthlyReportDetailResponse response = menteeReportService.getMonthlyReportDetail(menteeId, reportId);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("success", true);
+        result.put("data", response);
+
+        return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/monthly-plan")
+    public ResponseEntity<Map<String, Object>> getMonthlyPlan(
+            @RequestParam("year") int year,
+            @RequestParam("month") int month) {
+        Long menteeId = securityUtil.getCurrentUserId();
+        MonthlyPlanResponse response = plannerService.getMonthlyPlan(menteeId, year, month);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("success", true);
+        result.put("data", response);
+
+        return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/monthly-reports")
+    public ResponseEntity<Map<String, Object>> getMonthlyReports() {
+        Long menteeId = securityUtil.getCurrentUserId();
+        MonthlyReportListResponse response = menteeReportService.getMonthlyReports(menteeId);
 
         Map<String, Object> result = new HashMap<>();
         result.put("success", true);

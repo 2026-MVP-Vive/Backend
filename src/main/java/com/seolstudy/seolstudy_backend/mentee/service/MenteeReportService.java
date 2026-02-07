@@ -3,6 +3,7 @@ package com.seolstudy.seolstudy_backend.mentee.service;
 import com.seolstudy.seolstudy_backend.mentee.domain.MonthlyReport;
 import com.seolstudy.seolstudy_backend.mentee.domain.WeeklyReport;
 import com.seolstudy.seolstudy_backend.mentee.dto.MonthlyReportDetailResponse;
+import com.seolstudy.seolstudy_backend.mentee.dto.MonthlyReportListResponse;
 import com.seolstudy.seolstudy_backend.mentee.dto.WeeklyReportDetailResponse;
 import com.seolstudy.seolstudy_backend.mentee.dto.WeeklyReportListResponse;
 import com.seolstudy.seolstudy_backend.mentee.repository.MonthlyReportRepository;
@@ -39,6 +40,33 @@ public class MenteeReportService {
 
                 return WeeklyReportListResponse.builder()
                                 .reports(reportItems)
+                                .build();
+        }
+
+        public MonthlyReportListResponse getMonthlyReports(Long menteeId) {
+                List<MonthlyReport> reports = monthlyReportRepository
+                                .findByMenteeIdOrderByReportYearDescReportMonthDesc(menteeId);
+
+                List<MonthlyReportListResponse.MonthlyReportDto> reportDtos = reports.stream()
+                                .map(report -> {
+                                        LocalDate startDate = LocalDate.of(report.getReportYear(),
+                                                        report.getReportMonth(), 1);
+                                        LocalDate endDate = startDate.withDayOfMonth(startDate.lengthOfMonth());
+
+                                        return MonthlyReportListResponse.MonthlyReportDto.builder()
+                                                        .id(report.getId())
+                                                        .month(String.format("%d-%02d", report.getReportYear(),
+                                                                        report.getReportMonth()))
+                                                        .title(report.getTitle())
+                                                        .startDate(startDate)
+                                                        .endDate(endDate)
+                                                        .isAvailable(true)
+                                                        .build();
+                                })
+                                .collect(Collectors.toList());
+
+                return MonthlyReportListResponse.builder()
+                                .reports(reportDtos)
                                 .build();
         }
 

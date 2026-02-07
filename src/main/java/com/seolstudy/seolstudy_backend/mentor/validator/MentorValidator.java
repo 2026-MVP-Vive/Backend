@@ -1,6 +1,5 @@
 package com.seolstudy.seolstudy_backend.mentor.validator;
 
-import com.seolstudy.seolstudy_backend.auth.entity.Role;
 import com.seolstudy.seolstudy_backend.global.error.ErrorCode;
 import com.seolstudy.seolstudy_backend.global.error.GlobalExceptionHandler;
 import com.seolstudy.seolstudy_backend.mentee.domain.User;
@@ -23,18 +22,13 @@ public class MentorValidator {
         }
     }
 
-
     // 담당 멘티 여부 체크
     public void validateMyStudent(Long mentorId, Long studentId) {
-        boolean exists =
-                mentorMenteeRepository.existsByMentorIdAndMenteeId(
-                        mentorId, studentId
-                );
+        boolean exists = mentorMenteeRepository.existsByMentorIdAndMenteeId(
+                mentorId, studentId);
 
         if (!exists) {
             throw new IllegalArgumentException("해당 멘티에 대한 접근 권한이 없습니다.");
         }
     }
 }
-
-

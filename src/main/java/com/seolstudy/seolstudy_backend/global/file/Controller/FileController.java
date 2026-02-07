@@ -29,22 +29,23 @@ public class FileController {
 
     /** 파일 업로드 API 호출 */
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<ApiResponse<List<FileUploadResponse>>> uploadFiles(@RequestParam("files") List<MultipartFile> files,
-                                                                             @RequestParam("type") File.FileCategory type){
+    public ResponseEntity<ApiResponse<List<FileUploadResponse>>> uploadFiles(
+            @RequestParam("files") List<MultipartFile> files,
+            @RequestParam("type") File.FileCategory type) {
         return ResponseEntity.ok(ApiResponse.success(fileService.uploadFiles(files, type)));
     }
 
     /** 파일 다운로드 API 호출 */
     @GetMapping("/{fileId}/download")
-    public ResponseEntity<Resource> downloadFile(@PathVariable Long fileId){
-        //파일 서비스 호출
+    public ResponseEntity<Resource> downloadFile(@PathVariable Long fileId) {
+        // 파일 서비스 호출
         FileDownloadDto fileDownloadDto = fileService.downloadFile(fileId);
 
-        //파일명 인코딩 및 헤더 설정
+        // 파일명 인코딩 및 헤더 설정
         String encodedFileName = UriUtils.encode(fileDownloadDto.getOriginalName(), StandardCharsets.UTF_8);
         String contentDisposition = "attachment; filename=\"" + encodedFileName + "\"";
 
-        //Resource 반환
+        // Resource 반환
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, contentDisposition)
                 .contentType(MediaType.parseMediaType(fileDownloadDto.getFileType()))
@@ -54,14 +55,14 @@ public class FileController {
 
     /** 파일 삭제 API 호출 */
     @DeleteMapping("/{fileId}")
-    public ApiResponse<Void> deleteFile(@PathVariable Long fileId){
+    public ApiResponse<Void> deleteFile(@PathVariable Long fileId) {
         fileService.deleteFile(fileId);
-        return ApiResponse.success("파일이 삭제되었습니다.");
+        return ApiResponse.successMessage("파일이 삭제되었습니다.");
     }
 
     /** 파일 미리보기 API 호출 */
     @GetMapping("/{fileId}")
-    public ResponseEntity<Resource> preview(@PathVariable Long fileId){
+    public ResponseEntity<Resource> preview(@PathVariable Long fileId) {
         FilePreviewDto filePreviewDto = fileService.getFileInfo(fileId);
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType(filePreviewDto.getFileType()))

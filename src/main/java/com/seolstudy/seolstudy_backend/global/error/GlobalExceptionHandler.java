@@ -81,6 +81,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     protected ResponseEntity<ErrorResponse> handleException(Exception e) {
         log.error("handleException: ", e); // 상세 스택트레이스 로그 기록
+        try (java.io.PrintWriter pw = new java.io.PrintWriter(
+                new java.io.FileWriter("d:/vscode/salstudy/back/exception.log", true))) {
+            e.printStackTrace(pw);
+        } catch (java.io.IOException ignored) {
+        }
         return makeErrorResponse(ErrorCode.INTERNAL_ERROR, "서버 내부 오류가 발생했습니다.");
     }
 }

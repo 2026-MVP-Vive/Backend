@@ -1,5 +1,17 @@
 spring:
   datasource:
-    url: jdbc:mysql://localhost:3306/seolstudy?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
-    username: dnjsrb
-    password: dnjfem00~!
+    # <RDS-엔드포인트> 부분에 주소를, <DB-이름> 부분에 생성된 데이터베이스 이름을 넣으세요.
+    url: jdbc:mysql://seoul.cf26oug269l6.ap-northeast-2.rds.amazonaws.com:3306/study?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+    username: admin
+    password: J9nRopaJudHg2562Ko8Z
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      # 서버 실행 시 테이블을 자동으로 생성하게 하려면 update, 기존 테이블을 유지하려면 none
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.MySQL8Dialect

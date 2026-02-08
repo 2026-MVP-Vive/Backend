@@ -1,19 +1,21 @@
 package com.seolstudy.seolstudy_backend.mentee.service;
 
+import com.seolstudy.seolstudy_backend.global.error.BusinessException;
+import com.seolstudy.seolstudy_backend.global.error.ErrorCode;
 import com.seolstudy.seolstudy_backend.global.file.domain.File;
 import com.seolstudy.seolstudy_backend.global.file.dto.FileUploadResponse;
 import com.seolstudy.seolstudy_backend.global.file.service.FileService;
+import com.seolstudy.seolstudy_backend.global.fcm.service.FcmService;
 import com.seolstudy.seolstudy_backend.mentee.domain.Submission;
 import com.seolstudy.seolstudy_backend.mentee.domain.Task;
 import com.seolstudy.seolstudy_backend.mentee.dto.SubmissionResponse;
 import com.seolstudy.seolstudy_backend.mentee.repository.SubmissionRepository;
 import com.seolstudy.seolstudy_backend.mentee.repository.TaskRepository;
+import com.seolstudy.seolstudy_backend.mentee.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
-
-import java.io.IOException;
 
 @Service
 @RequiredArgsConstructor
@@ -22,7 +24,9 @@ public class SubmissionService {
 
     private final TaskRepository taskRepository;
     private final SubmissionRepository submissionRepository;
+    private final UserRepository userRepository;
     private final FileService fileService;
+    private final FcmService fcmService;
 
     @Transactional
     public SubmissionResponse submitTask(Long menteeId, Long taskId, MultipartFile file) {
@@ -49,9 +53,19 @@ public class SubmissionService {
             Submission submission = new Submission(taskId, fileUploadResponse.getId());
             submissionRepository.save(submission);
 
+            /** Fcm 로직 추가 */
+            sendNotificationToMentor(menteeId, taskId);
+
             return SubmissionResponse.of(submission);
         } catch (Exception e) {
             throw new RuntimeException("Failed to save file", e);
         }
+    }
+
+    @Transactional
+    public void sendNotificationToMentor(Long menteeId, Long taskId){
+        String fcmToken = userRepository.findMentorTokenByMenteeId(menteeId)
+                .orElseThrow(() -> new BusinessException("멘티 정보를 찾을 수 없습니다.", ErrorCode.NOT_FOUND));
+        fcmService.sendNotification(fcmToken, "과제 제출 알림", "멘티가 과제를 제출했습니다! 확인해 주세요.", taskId);
     }
 }

@@ -47,8 +47,8 @@ public class SecurityConfig {
                         /** 테스트에 한해 모든 사용자에게 모든 API 접근을 허용
                          *  실제 테스트 시 각 API별 권한 설정
                          * */
-                        .requestMatchers("/api/v1/auth/**", "/api/v1/files/**", "api/v1/mentee/**"
-                        , "api/v1/mentor/**").permitAll()
+                        .requestMatchers("/api/v1/auth/**", "/api/v1/files/**", "/api/v1/mentee/**"
+                        , "/api/v1/mentor/**").permitAll()
 //                        .requestMatchers("/api/v1/mentor/**").hasRole("MENTOR") //권한 설
                         .anyRequest().authenticated() // 나머지 접근은 인증 필요
                 )

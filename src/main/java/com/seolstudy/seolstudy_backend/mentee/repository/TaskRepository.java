@@ -11,7 +11,7 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
     List<Task> findAllByMenteeIdAndTaskDate(Long menteeId, LocalDate taskDate);
 
     List<Task> findAllByMenteeIdAndTaskDateBetween(Long menteeId, LocalDate startDate, LocalDate endDate);
-
+    long countBySolutionId(Long solutionId);
     @Query("SELECT COUNT(DISTINCT t.taskDate) FROM Task t WHERE t.menteeId = :menteeId")
     long countDistinctTaskDateByMenteeId(Long menteeId);
 }

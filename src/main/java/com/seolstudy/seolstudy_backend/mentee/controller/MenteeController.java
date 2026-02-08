@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -217,6 +218,22 @@ public class MenteeController {
         Map<String, Object> result = new HashMap<>();
         result.put("success", true);
         result.put("data", response);
+
+        return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/zoom-meetings")
+    public ResponseEntity<Map<String, Object>> getZoomMeetings(
+            @RequestParam(value = "status", required = false) String status) {
+        Long menteeId = securityUtil.getCurrentUserId();
+        List<ZoomMeetingResponse> meetings = zoomMeetingService.getZoomMeetings(menteeId, status);
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("meetings", meetings);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("success", true);
+        result.put("data", data);
 
         return ResponseEntity.ok(result);
     }

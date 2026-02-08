@@ -20,6 +20,8 @@ public class ZoomMeetingResponse {
     private String status;
     private LocalDateTime createdAt;
 
+    private LocalDateTime confirmedAt;
+
     public static ZoomMeetingResponse from(ZoomMeeting zoomMeeting) {
         return ZoomMeetingResponse.builder()
                 .id(zoomMeeting.getId())
@@ -27,6 +29,7 @@ public class ZoomMeetingResponse {
                 .preferredTime(zoomMeeting.getPreferredTime().toString().substring(0, 5))
                 .status(zoomMeeting.getStatus().name())
                 .createdAt(zoomMeeting.getCreatedAt())
+                .confirmedAt(zoomMeeting.getConfirmedAt())
                 .build();
     }
 }

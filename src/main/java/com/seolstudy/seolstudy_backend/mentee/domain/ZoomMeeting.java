@@ -46,8 +46,12 @@ public class ZoomMeeting {
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
+    @Column(name = "confirmed_at")
+    private LocalDateTime confirmedAt;
+
     public void confirm() {
         this.status = ZoomMeetingStatus.CONFIRMED;
+        this.confirmedAt = LocalDateTime.now();
     }
 
     public void cancel() {

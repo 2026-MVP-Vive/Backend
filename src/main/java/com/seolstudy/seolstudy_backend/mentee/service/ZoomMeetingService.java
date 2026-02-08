@@ -1,6 +1,7 @@
 package com.seolstudy.seolstudy_backend.mentee.service;
 
 import com.seolstudy.seolstudy_backend.mentee.domain.ZoomMeeting;
+import com.seolstudy.seolstudy_backend.mentee.domain.ZoomMeetingStatus;
 import com.seolstudy.seolstudy_backend.mentee.dto.ZoomMeetingRequest;
 import com.seolstudy.seolstudy_backend.mentee.dto.ZoomMeetingResponse;
 import com.seolstudy.seolstudy_backend.mentee.repository.ZoomMeetingRepository;
@@ -10,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -35,5 +37,29 @@ public class ZoomMeetingService {
         ZoomMeeting savedMeeting = zoomMeetingRepository.save(zoomMeeting);
 
         return ZoomMeetingResponse.from(savedMeeting);
+    }
+
+    public List<ZoomMeetingResponse> getZoomMeetings(Long menteeId, String status) {
+        List<ZoomMeeting> meetings;
+
+        if (status != null && !status.isEmpty()) {
+            ZoomMeetingStatus meetingStatus;
+            try {
+                meetingStatus = ZoomMeetingStatus.valueOf(status.toUpperCase());
+            } catch (IllegalArgumentException e) {
+                // If invalid status is provided, return empty list or ignored? 
+                // Spec says "status | String | X" (optional).
+                // If provided but invalid, maybe throw error or return empty?
+                // I'll throw explicit error or ignore. Let's throw for bad request.
+                throw new IllegalArgumentException("Invalid status: " + status);
+            }
+            meetings = zoomMeetingRepository.findAllByMenteeIdAndStatusOrderByCreatedAtDesc(menteeId, meetingStatus);
+        } else {
+            meetings = zoomMeetingRepository.findAllByMenteeIdOrderByCreatedAtDesc(menteeId);
+        }
+
+        return meetings.stream()
+                .map(ZoomMeetingResponse::from)
+                .toList();
     }
 }

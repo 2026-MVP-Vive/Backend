@@ -25,6 +25,8 @@ public class Task {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // ... (fields)
+
     @Column(name = "mentee_id", nullable = false)
     private Long menteeId;
 

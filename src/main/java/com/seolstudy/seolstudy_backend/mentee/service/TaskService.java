@@ -2,10 +2,7 @@ package com.seolstudy.seolstudy_backend.mentee.service;
 
 import com.seolstudy.seolstudy_backend.global.file.domain.File;
 import com.seolstudy.seolstudy_backend.global.file.repository.FileRepository;
-import com.seolstudy.seolstudy_backend.mentee.domain.Feedback;
-import com.seolstudy.seolstudy_backend.mentee.domain.Submission;
-import com.seolstudy.seolstudy_backend.mentee.domain.Task;
-import com.seolstudy.seolstudy_backend.mentee.domain.TaskMaterial;
+import com.seolstudy.seolstudy_backend.mentee.domain.*;
 import com.seolstudy.seolstudy_backend.mentee.dto.*;
 import com.seolstudy.seolstudy_backend.mentee.repository.FeedbackRepository;
 import com.seolstudy.seolstudy_backend.mentee.repository.SubmissionRepository;
@@ -18,11 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.format.TextStyle;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -44,6 +37,7 @@ public class TaskService {
                                 request.getDate(),
                                 request.getSubject(),
                                 menteeId);
+
                 Task savedTask = taskRepository.save(task);
                 return TaskResponse.of(savedTask, false, false, 0);
         }
@@ -60,51 +54,36 @@ public class TaskService {
                                         .build();
                 }
 
-                // TODO: Optimize: Bulk fetch to avoid N+1 if performance becomes an issue
-                // List<Long> taskIds = tasks.stream().map(Task::getId).toList();
-                // ids).
-                // Let's implement efficiently using Java streams if repo modification is too
-                // much, OR add repo methods.
-                // Adding repo methods is better. Let's assume we can add them or use naive
-                // approach if users didn't approve repo changes explicitly (though they
-                // approved the plan which said "Optimize").
-                // I will add custom methods to repositories in a separate step if needed, but
-                // for now I can simulate 'exists' checks efficiently?
-                // Actually, let's keep it simple. Standard JPA often has findAllById. But here
-                // we search by TaskId.
-                // I'll stick to the original logic for now but clean it up to be inside
-                // TaskService.
-                // Wait, the user specifically asked for "Refactoring". N+1 is a major issue.
-                // I should fetch all submissions for these tasks.
+                List<Long> taskIds = tasks.stream().map(Task::getId).toList();
 
-                // Since I haven't added `findAllByTaskIdIn` to repos, and I can't easily do it
-                // without editing multiple files,
-                // AND the user plan approved "Optimize", I will try to use naive batching or
-                // just keep N+1 but inside this service.
-                // However, I can fetch all for the day or simple loop.
-                // Given the scale (daily tasks ~3-5), N+1 is negligible. I'll stick to readable
-                // code first.
+                // Batch fetching to avoid N+1 problem
+                Set<Long> tasksWithSubmission = submissionRepository.findAllByTaskIdIn(taskIds).stream()
+                                .map(Submission::getTaskId)
+                                .collect(Collectors.toSet());
 
-                int total = tasks.size();
-                int completed = 0;
-                int totalStudyTime = 0;
+                Set<Long> tasksWithFeedback = feedbackRepository.findAllByTaskIdIn(taskIds).stream()
+                                .map(Feedback::getTaskId)
+                                .collect(Collectors.toSet());
+
+                Map<Long, Long> materialCounts = taskMaterialRepository.findAllByTaskIdIn(taskIds).stream()
+                                .collect(Collectors.groupingBy(TaskMaterial::getTaskId, Collectors.counting()));
 
                 List<TaskResponse> taskResponses = tasks.stream().map(task -> {
-                        boolean hasSubmission = submissionRepository.existsByTaskId(task.getId());
-                        boolean hasFeedback = feedbackRepository.existsByTaskId(task.getId());
-                        int materialCount = taskMaterialRepository.countByTaskId(task.getId());
+                        boolean hasSubmission = tasksWithSubmission.contains(task.getId());
+                        boolean hasFeedback = tasksWithFeedback.contains(task.getId());
+                        int materialCount = materialCounts.getOrDefault(task.getId(), 0L).intValue();
 
                         return TaskResponse.of(task, hasSubmission, hasFeedback, materialCount);
                 }).toList();
 
-                for (TaskResponse tr : taskResponses) {
-                        if (tr.isCompleted()) {
-                                completed++;
-                        }
-                        if (tr.getStudyTime() != null) {
-                                totalStudyTime += tr.getStudyTime();
-                        }
-                }
+                // Calculate summary
+                int total = tasks.size();
+                int completed = (int) taskResponses.stream().filter(TaskResponse::isCompleted).count();
+                int totalStudyTime = taskResponses.stream()
+                                .map(TaskResponse::getStudyTime)
+                                .filter(Objects::nonNull)
+                                .mapToInt(Integer::intValue)
+                                .sum();
 
                 return DailyTaskResponse.builder()
                                 .date(date)
@@ -125,7 +104,17 @@ public class TaskService {
                         throw new RuntimeException("Access denied");
                 }
 
-                // 1. Goal
+                // Fetch related data
+                List<TaskMaterial> materials = taskMaterialRepository.findAllByTaskId(taskId);
+                Submission submission = submissionRepository.findByTaskId(taskId);
+                Feedback feedback = feedbackRepository.findByTaskId(taskId);
+
+                return buildTaskDetailResponse(task, materials, submission, feedback);
+        }
+
+        private TaskDetailResponse buildTaskDetailResponse(Task task, List<TaskMaterial> materials,
+                        Submission submission, Feedback feedback) {
+                // Goal
                 TaskDetailResponse.GoalDto goalDto = null;
                 if (task.getSolution() != null) {
                         goalDto = TaskDetailResponse.GoalDto.builder()
@@ -135,11 +124,9 @@ public class TaskService {
                                         .build();
                 }
 
-                // 2. Materials
-                List<TaskMaterial> materials = taskMaterialRepository.findAllByTaskId(taskId);
+                // Materials
                 List<Long> fileIds = materials.stream().map(TaskMaterial::getFileId).toList();
                 List<File> files = fileRepository.findAllById(fileIds);
-
                 List<TaskDetailResponse.FileDto> fileDtos = files.stream().map(f -> TaskDetailResponse.FileDto.builder()
                                 .id(f.getId())
                                 .fileName(f.getOriginalName())
@@ -148,8 +135,7 @@ public class TaskService {
                                 .downloadUrl("/api/v1/files/" + f.getId() + "/download")
                                 .build()).toList();
 
-                // 3. Submission
-                Submission submission = submissionRepository.findByTaskId(taskId);
+                // Submission
                 TaskDetailResponse.SubmissionDto submissionDto = null;
                 if (submission != null) {
                         submissionDto = TaskDetailResponse.SubmissionDto.builder()
@@ -159,8 +145,7 @@ public class TaskService {
                                         .build();
                 }
 
-                // 4. Feedback
-                Feedback feedback = feedbackRepository.findByTaskId(taskId);
+                // Feedback
                 TaskDetailResponse.FeedbackDto feedbackDto = null;
                 if (feedback != null) {
                         feedbackDto = TaskDetailResponse.FeedbackDto.builder()
@@ -208,7 +193,6 @@ public class TaskService {
                 LocalDate endDate = yearMonth.atEndOfMonth();
 
                 List<Task> tasks = taskRepository.findAllByMenteeIdAndTaskDateBetween(menteeId, startDate, endDate);
-
                 Map<LocalDate, List<Task>> tasksByDate = tasks.stream()
                                 .collect(Collectors.groupingBy(Task::getTaskDate));
 
@@ -222,16 +206,13 @@ public class TaskService {
                                         .filter(Task::isMentorConfirmed)
                                         .count();
 
-                        boolean hasTask = taskCount > 0;
-                        String dayOfWeek = date.getDayOfWeek().getDisplayName(TextStyle.SHORT, Locale.ENGLISH)
-                                        .toUpperCase();
-
                         plans.add(DailyPlanDto.builder()
                                         .date(date)
-                                        .dayOfWeek(dayOfWeek)
+                                        .dayOfWeek(date.getDayOfWeek().getDisplayName(TextStyle.SHORT, Locale.ENGLISH)
+                                                        .toUpperCase())
                                         .taskCount(taskCount)
                                         .completedCount(completedCount)
-                                        .hasTask(hasTask)
+                                        .hasTask(taskCount > 0)
                                         .build());
                 }
 

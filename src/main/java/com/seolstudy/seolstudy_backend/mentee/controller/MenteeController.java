@@ -9,6 +9,7 @@ import com.seolstudy.seolstudy_backend.mentee.service.TaskService;
 import com.seolstudy.seolstudy_backend.mentee.service.AchievementService;
 import com.seolstudy.seolstudy_backend.mentee.service.MenteeReportService;
 import com.seolstudy.seolstudy_backend.mentee.service.PlannerService;
+import com.seolstudy.seolstudy_backend.mentee.service.ZoomMeetingService;
 import com.seolstudy.seolstudy_backend.mentee.dto.MonthlyPlanResponse;
 import com.seolstudy.seolstudy_backend.mentee.dto.MonthlyReportListResponse;
 import java.time.LocalDate;
@@ -19,6 +20,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -32,6 +34,7 @@ public class MenteeController {
     private final AchievementService achievementService;
     private final MenteeReportService menteeReportService;
     private final PlannerService plannerService;
+    private final ZoomMeetingService zoomMeetingService;
 
     private final SecurityUtil securityUtil;
 
@@ -211,6 +214,34 @@ public class MenteeController {
         Long menteeId = securityUtil.getCurrentUserId();
         LocalDate date = LocalDate.parse(dateStr);
         PlannerCompletionResponse response = plannerService.completeDailyPlanner(menteeId, date);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("success", true);
+        result.put("data", response);
+
+        return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/zoom-meetings")
+    public ResponseEntity<Map<String, Object>> getZoomMeetings(
+            @RequestParam(value = "status", required = false) String status) {
+        Long menteeId = securityUtil.getCurrentUserId();
+        List<ZoomMeetingResponse> meetings = zoomMeetingService.getZoomMeetings(menteeId, status);
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("meetings", meetings);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("success", true);
+        result.put("data", data);
+
+        return ResponseEntity.ok(result);
+    }
+
+    @PostMapping("/zoom-meetings")
+    public ResponseEntity<Map<String, Object>> requestZoomMeeting(@Valid @RequestBody ZoomMeetingRequest request) {
+        Long menteeId = securityUtil.getCurrentUserId();
+        ZoomMeetingResponse response = zoomMeetingService.requestZoomMeeting(menteeId, request);
 
         Map<String, Object> result = new HashMap<>();
         result.put("success", true);

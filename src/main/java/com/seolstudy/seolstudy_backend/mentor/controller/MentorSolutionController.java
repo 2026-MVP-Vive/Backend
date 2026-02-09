@@ -8,6 +8,7 @@ package com.seolstudy.seolstudy_backend.mentor.controller;
 import com.seolstudy.seolstudy_backend.global.common.ApiResponse;
 import com.seolstudy.seolstudy_backend.mentee.domain.Subject;
 import com.seolstudy.seolstudy_backend.mentor.dto.response.MentorSolutionCreateResponse;
+import com.seolstudy.seolstudy_backend.mentor.dto.response.MentorSolutionUpdateResponse;
 import com.seolstudy.seolstudy_backend.mentor.dto.response.MentorStudentSolutionResponse;
 import com.seolstudy.seolstudy_backend.mentor.service.MentorSolutionService;
 import lombok.RequiredArgsConstructor;
@@ -52,6 +53,39 @@ public class MentorSolutionController {
                 )
         );
     }
+
+    @PutMapping(
+            value = "/students/{studentId}/solutions/{solutionId}",
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE
+    )
+    public ApiResponse<MentorSolutionUpdateResponse> updateSolution(
+            @PathVariable Long studentId,
+            @PathVariable Long solutionId,
+
+            @RequestParam(value = "title", required = false)
+            String title,
+
+            @RequestParam(value = "subject", required = false)
+            Subject subject,
+
+            @RequestPart(value = "materials", required = false)
+            List<MultipartFile> materials,
+
+            @RequestParam(value = "deleteFileIds", required = false)
+            List<Long> deleteFileIds
+    ) {
+        return ApiResponse.success(
+                mentorSolutionService.updateSolution(
+                        studentId,
+                        solutionId,
+                        title,
+                        subject,
+                        materials,
+                        deleteFileIds
+                )
+        );
+    }
+
 
 
 }

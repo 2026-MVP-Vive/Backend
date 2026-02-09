@@ -85,6 +85,14 @@ public class MentorSolutionController {
                 )
         );
     }
+    @DeleteMapping("/students/{studentId}/solutions/{solutionId}")
+    public ApiResponse<Void> deleteSolution(
+            @PathVariable Long studentId,
+            @PathVariable Long solutionId
+    ) {
+        mentorSolutionService.deleteSolution(studentId, solutionId);
+        return ApiResponse.successMessage("솔루션이 삭제되었습니다.");
+    }
 
 
 

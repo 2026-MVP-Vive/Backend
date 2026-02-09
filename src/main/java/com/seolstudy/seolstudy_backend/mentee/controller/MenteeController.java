@@ -210,10 +210,25 @@ public class MenteeController {
     }
 
     @PostMapping("/planner/{date}/complete")
-    public ResponseEntity<Map<String, Object>> completePlanner(@PathVariable("date") String dateStr) {
+    public ResponseEntity<Map<String, Object>> completePlanner(
+            @PathVariable("date") String dateStr,
+            @RequestBody PlannerCompleteRequest request) {
         Long menteeId = securityUtil.getCurrentUserId();
         LocalDate date = LocalDate.parse(dateStr);
-        PlannerCompletionResponse response = plannerService.completeDailyPlanner(menteeId, date);
+        PlannerCompletionResponse response = plannerService.completeDailyPlanner(menteeId, date, request);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("success", true);
+        result.put("data", response);
+
+        return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/planner/{date}/status")
+    public ResponseEntity<Map<String, Object>> getPlannerStatus(@PathVariable("date") String dateStr) {
+        Long menteeId = securityUtil.getCurrentUserId();
+        LocalDate date = LocalDate.parse(dateStr);
+        PlannerCompletionResponse response = plannerService.getPlannerCompletionStatus(menteeId, date);
 
         Map<String, Object> result = new HashMap<>();
         result.put("success", true);

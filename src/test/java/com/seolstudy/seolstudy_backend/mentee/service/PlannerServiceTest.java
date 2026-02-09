@@ -2,6 +2,7 @@ package com.seolstudy.seolstudy_backend.mentee.service;
 
 import com.seolstudy.seolstudy_backend.mentee.domain.PlannerCompletion;
 import com.seolstudy.seolstudy_backend.mentee.domain.Task;
+import com.seolstudy.seolstudy_backend.mentee.dto.PlannerCompleteRequest;
 import com.seolstudy.seolstudy_backend.mentee.dto.PlannerCompletionResponse;
 import com.seolstudy.seolstudy_backend.mentee.repository.PlannerCompletionRepository;
 import com.seolstudy.seolstudy_backend.mentee.repository.SubmissionRepository;
@@ -70,7 +71,8 @@ class PlannerServiceTest {
         given(plannerCompletionRepository.save(any(PlannerCompletion.class))).willReturn(savedCompletion);
 
         // when
-        PlannerCompletionResponse response = plannerService.completeDailyPlanner(menteeId, date);
+        PlannerCompleteRequest request = PlannerCompleteRequest.builder().tasks(List.of(10L, 20L)).build();
+        PlannerCompletionResponse response = plannerService.completeDailyPlanner(menteeId, date, request);
 
         // then
         assertThat(response.getStatus()).isEqualTo("COMPLETED");
@@ -79,46 +81,30 @@ class PlannerServiceTest {
     }
 
     @Test
-    @DisplayName("플래너 마감 실패: 제출되지 않은 할 일이 있음")
-    void completeDailyPlanner_Failure_IncompleteTasks() {
+    @DisplayName("플래너 마감 실패: 할 일이 하나도 없음 (선택적)")
+    void completeDailyPlanner_NoTasksInRequest() {
         // given
         Long menteeId = 1L;
         LocalDate date = LocalDate.of(2025, 1, 27);
 
         given(plannerCompletionRepository.existsByMenteeIdAndPlanDate(menteeId, date)).willReturn(false);
 
-        Task task1 = new Task(menteeId, "Task 1", date, null, menteeId);
-        task1.setId(10L);
-        Task task2 = new Task(menteeId, "Task 2", date, null, menteeId);
-        task2.setId(20L);
-        given(taskRepository.findAllByMenteeIdAndTaskDate(menteeId, date)).willReturn(List.of(task1, task2));
+        // 저장 모킹
+        PlannerCompletion savedCompletion = PlannerCompletion.builder()
+                .menteeId(menteeId)
+                .planDate(date)
+                .completedAt(LocalDateTime.now())
+                .build();
+        given(plannerCompletionRepository.save(any(PlannerCompletion.class))).willReturn(savedCompletion);
 
-        // task1은 제출됨, task2는 제출 안됨
-        given(submissionRepository.existsByTaskId(10L)).willReturn(true);
-        given(submissionRepository.existsByTaskId(20L)).willReturn(false);
+        // when
+        PlannerCompleteRequest request = PlannerCompleteRequest.builder().tasks(List.of()).build();
+        PlannerCompletionResponse response = plannerService.completeDailyPlanner(menteeId, date, request);
 
-        // when & then
-        assertThatThrownBy(() -> plannerService.completeDailyPlanner(menteeId, date))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("아직 완료되지 않은 할 일이 있습니다");
-
-        verify(plannerCompletionRepository, never()).save(any(PlannerCompletion.class));
-    }
-
-    @Test
-    @DisplayName("플래너 마감 실패: 할 일이 하나도 없음")
-    void completeDailyPlanner_Failure_NoTasks() {
-        // given
-        Long menteeId = 1L;
-        LocalDate date = LocalDate.of(2025, 1, 27);
-
-        given(plannerCompletionRepository.existsByMenteeIdAndPlanDate(menteeId, date)).willReturn(false);
-        given(taskRepository.findAllByMenteeIdAndTaskDate(menteeId, date)).willReturn(List.of());
-
-        // when & then
-        assertThatThrownBy(() -> plannerService.completeDailyPlanner(menteeId, date))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("할 일이 없습니다");
+        // then
+        assertThat(response.getStatus()).isEqualTo("COMPLETED");
+        verify(taskRepository, never()).findAllById(any());
+        verify(plannerCompletionRepository).save(any(PlannerCompletion.class));
     }
 
     @Test
@@ -138,7 +124,8 @@ class PlannerServiceTest {
         given(plannerCompletionRepository.findByMenteeIdAndPlanDate(menteeId, date)).willReturn(Optional.of(existing));
 
         // when
-        PlannerCompletionResponse response = plannerService.completeDailyPlanner(menteeId, date);
+        PlannerCompleteRequest request = PlannerCompleteRequest.builder().tasks(List.of(10L)).build();
+        PlannerCompletionResponse response = plannerService.completeDailyPlanner(menteeId, date, request);
 
         // then
         assertThat(response.getStatus()).isEqualTo("COMPLETED");

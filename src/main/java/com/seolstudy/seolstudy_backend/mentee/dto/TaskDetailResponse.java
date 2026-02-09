@@ -21,6 +21,7 @@ public class TaskDetailResponse {
     private boolean isUploadRequired;
     private boolean isMentorAssigned;
     private boolean isMentorConfirmed;
+    private boolean isMenteeCompleted;
     private List<FileDto> materials;
     private SubmissionDto submission;
     private FeedbackDto feedback;

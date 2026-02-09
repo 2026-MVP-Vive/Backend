@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @Builder
@@ -16,4 +17,5 @@ public class PlannerCompletionResponse {
     private LocalDate date;
     private LocalDateTime completedAt;
     private String status;
+    private List<Long> tasks;
 }

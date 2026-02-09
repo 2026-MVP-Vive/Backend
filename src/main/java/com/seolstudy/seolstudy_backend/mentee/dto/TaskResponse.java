@@ -21,6 +21,7 @@ public class TaskResponse {
     private boolean isUploadRequired;
     private boolean isMentorAssigned;
     private boolean isMentorConfirmed;
+    private boolean isMenteeCompleted;
     private boolean hasSubmission;
     private boolean hasFeedback;
     private int materialCount;
@@ -41,6 +42,7 @@ public class TaskResponse {
                 .isUploadRequired(task.isUploadRequired())
                 .isMentorAssigned(task.isMentorAssigned())
                 .isMentorConfirmed(task.isMentorConfirmed())
+                .isMenteeCompleted(task.isMenteeCompleted())
                 .hasSubmission(hasSubmission)
                 .hasFeedback(hasFeedback)
                 .materialCount(materialCount)

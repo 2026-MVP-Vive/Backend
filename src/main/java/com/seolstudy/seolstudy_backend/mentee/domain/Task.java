@@ -56,6 +56,12 @@ public class Task {
     @Column(name = "is_mentor_confirmed", nullable = false)
     private boolean isMentorConfirmed;
 
+    @Column(name = "is_mentee_completed", nullable = false)
+    private boolean isMenteeCompleted;
+
+    @Column(name = "mentee_completed_at")
+    private LocalDateTime menteeCompletedAt;
+
     @Column(name = "confirmed_at")
     private LocalDateTime confirmedAt;
 

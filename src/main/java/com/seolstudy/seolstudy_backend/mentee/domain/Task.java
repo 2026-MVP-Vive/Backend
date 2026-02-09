@@ -56,8 +56,8 @@ public class Task {
     @Column(name = "confirmed_at")
     private LocalDateTime confirmedAt;
 
-    @Column(name = "creator_by", nullable = false)
-    private Long creatorId;
+    @Column(name = "created_by", nullable = false)
+    private Long createdBy;
 
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -67,12 +67,12 @@ public class Task {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
-    public Task(Long menteeId, String title, LocalDate taskDate, Subject subject, Long creatorId) {
+    public Task(Long menteeId, String title, LocalDate taskDate, Subject subject, Long createdBy) {
         this.menteeId = menteeId;
         this.title = title;
         this.taskDate = taskDate;
         this.subject = subject;
-        this.creatorId = creatorId;
+        this.createdBy = createdBy;
         this.isMentorAssigned = false;
         this.isMentorConfirmed = false;
     }

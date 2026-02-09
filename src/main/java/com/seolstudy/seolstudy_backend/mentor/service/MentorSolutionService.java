@@ -238,5 +238,30 @@ public class MentorSolutionService {
                 solution.getUpdatedAt()
         );
     }
+    @Transactional
+    public void deleteSolution(Long studentId, Long solutionId) {
+
+        Solution solution = solutionRepository.findById(solutionId)
+                .orElseThrow(() -> new NoSuchElementException("솔루션을 찾을 수 없습니다."));
+
+        // (JWT 붙기 전) 멘티 소유 검증
+        if (!solution.getMenteeId().equals(studentId)) {
+            throw new IllegalArgumentException("해당 멘티의 솔루션이 아닙니다.");
+        }
+
+        // 🔥 핵심 로직
+        long linkedTaskCount = taskRepository.countBySolutionId(solutionId);
+        if (linkedTaskCount > 0) {
+            throw new IllegalArgumentException("연결된 할 일이 있어 삭제할 수 없습니다.");
+        }
+
+        // 연결된 파일 정리
+        List<SolutionMaterial> materials =
+                solutionMaterialRepository.findAllBySolutionId(solutionId);
+        solutionMaterialRepository.deleteAll(materials);
+
+        solutionRepository.delete(solution);
+    }
+
 
 }

@@ -28,4 +28,4 @@ spring:
         secret-key: ${AWS_SECRET_KEY}
   jwt:
     secret: ${JWT_SECRET_KEY}
-    expiration: 1800000
+    expiration: 180F0000

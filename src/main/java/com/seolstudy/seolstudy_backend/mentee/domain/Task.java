@@ -47,6 +47,9 @@ public class Task {
     @Column(name = "study_time")
     private Integer studyTime;
 
+    @Column(name = "is_upload_required", nullable = false)
+    private boolean isUploadRequired;
+
     @Column(name = "is_mentor_assigned", nullable = false)
     private boolean isMentorAssigned;
 
@@ -73,6 +76,7 @@ public class Task {
         this.taskDate = taskDate;
         this.subject = subject;
         this.createdBy = createdBy;
+        this.isUploadRequired = false; // Default for Mentee created tasks
         this.isMentorAssigned = false;
         this.isMentorConfirmed = false;
     }

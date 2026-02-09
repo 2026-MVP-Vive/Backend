@@ -103,6 +103,20 @@ public class MenteeController {
         return ResponseEntity.ok(result);
     }
 
+    @PatchMapping("/tasks/{taskId}/complete")
+    public ResponseEntity<Map<String, Object>> toggleTaskCompletion(
+            @PathVariable("taskId") Long taskId,
+            @RequestBody TaskCompleteRequest request) {
+        Long menteeId = securityUtil.getCurrentUserId();
+        TaskCompleteResponse response = taskService.toggleTaskCompletion(menteeId, taskId, request.getCompleted());
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("success", true);
+        result.put("data", response);
+
+        return ResponseEntity.ok(result);
+    }
+
     @GetMapping("/feedbacks")
     public ResponseEntity<Map<String, Object>> getDailyFeedbacks(@RequestParam("date") String date) {
         Long menteeId = securityUtil.getCurrentUserId();

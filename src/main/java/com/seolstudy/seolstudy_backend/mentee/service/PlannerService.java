@@ -77,7 +77,6 @@ public class PlannerService {
                                         .tasks(taskIds)
                                         .build();
                 } catch (Exception e) {
-                        // Error handling fallback for testing
                         return PlannerCompletionResponse.builder()
                                         .date(date)
                                         .completedAt(LocalDateTime.now())

@@ -12,7 +12,7 @@ public class MentorStudentTaskResponse {
     private Long studentId;
     private String studentName;
     private LocalDate date;
+    private boolean isCompleted;
     private List<TaskResponse> tasks;
     private List<Object> comments; // 현재는 빈 배열
 }
-

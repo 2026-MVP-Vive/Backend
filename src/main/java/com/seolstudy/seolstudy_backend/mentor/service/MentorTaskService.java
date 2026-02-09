@@ -32,6 +32,7 @@ public class MentorTaskService {
         private final FeedbackRepository feedbackRepository;
         private final SolutionRepository solutionRepository;
         private final TaskMaterialRepository taskMaterialRepository;
+        private final PlannerCompletionRepository plannerCompletionRepository;
         private final FileService fileService;
 
         public MentorStudentTaskResponse getStudentTasks(Long studentId, LocalDate date) {
@@ -58,31 +59,39 @@ public class MentorTaskService {
                                         Submission submission = submissionRepository.findByTaskId(task.getId());
                                         Feedback feedback = feedbackRepository.findByTaskId(task.getId());
 
-                                        return new TaskResponse(
-                                                        task.getId(),
-                                                        task.getTitle(),
-                                                        task.getSubject(),
-                                                        task.getSubject() != null ? task.getSubject().name() : null,
-                                                        task.getSolution() == null ? null
+                                        return TaskResponse.builder()
+                                                        .id(task.getId())
+                                                        .title(task.getTitle())
+                                                        .subject(task.getSubject())
+                                                        .subjectName(task.getSubject() != null
+                                                                        ? task.getSubject().getDescription()
+                                                                        : null)
+                                                        .goal(task.getSolution() == null ? null
                                                                         : new GoalResponse(
                                                                                         task.getSolution().getId(),
-                                                                                        task.getSolution().getTitle()),
-                                                        List.of(), // 🔥 TaskMaterial Repository 없으므로 비워둠
-                                                        task.getStudyTime(),
-                                                        task.isUploadRequired(),
-                                                        task.isMentorConfirmed(),
-                                                        submission == null ? null : SubmissionResponse.of(submission),
-                                                        feedback == null ? null
+                                                                                        task.getSolution().getTitle()))
+                                                        .materials(List.of())
+                                                        .studyTime(task.getStudyTime())
+                                                        .isUploadRequired(task.isUploadRequired())
+                                                        .isMentorConfirmed(task.isMentorConfirmed())
+                                                        .isChecked(task.isMenteeCompleted())
+                                                        .submission(submission == null ? null
+                                                                        : SubmissionResponse.of(submission))
+                                                        .feedback(feedback == null ? null
                                                                         : new FeedbackResponse(
                                                                                         feedback.getId(),
-                                                                                        feedback.isImportant()));
+                                                                                        feedback.isImportant()))
+                                                        .build();
                                 })
                                 .toList();
+
+                boolean isCompleted = plannerCompletionRepository.existsByMenteeIdAndPlanDate(studentId, date);
 
                 return new MentorStudentTaskResponse(
                                 studentId,
                                 student.getName(),
                                 date,
+                                isCompleted,
                                 taskResponses,
                                 List.of() // comments 없음
                 );

@@ -18,7 +18,6 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.NoSuchElementException;
-import com.seolstudy.seolstudy_backend.global.util.SecurityUtil;
 import com.seolstudy.seolstudy_backend.mentee.repository.SolutionRepository;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -27,7 +26,6 @@ import org.springframework.web.multipart.MultipartFile;
 @Transactional(readOnly = true)
 public class MentorTaskService {
 
-        private final MentorMenteeRepository mentorMenteeRepository;
         private final UserRepository userRepository;
         private final TaskRepository taskRepository;
         private final SubmissionRepository submissionRepository;
@@ -95,7 +93,7 @@ public class MentorTaskService {
                         Long studentId,
                         MentorTaskCreateRequest request) {
                 // 1️⃣ 멘티 확인
-                User student = userRepository.findById(studentId)
+                userRepository.findById(studentId)
                                 .orElseThrow(() -> new NoSuchElementException("멘티를 찾을 수 없습니다."));
 
                 // 2️⃣ Solution 조회 (선택)

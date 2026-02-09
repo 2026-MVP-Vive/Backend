@@ -76,7 +76,18 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * 6. 그 외 서버 내부에서 발생하는 모든 예외 처리 (Exception)
+     * 7. 정적 리소스를 찾을 수 없는 경우 발생 (NoResourceFoundException)
+     * Spring Boot 3.2+ 에서 발생하는 404 에러
+     */
+    @ExceptionHandler(org.springframework.web.servlet.resource.NoResourceFoundException.class)
+    protected ResponseEntity<ErrorResponse> handleNoResourceFoundException(
+            org.springframework.web.servlet.resource.NoResourceFoundException e) {
+        log.warn("handleNoResourceFoundException: {}", e.getMessage());
+        return makeErrorResponse(ErrorCode.NOT_FOUND, "요청하신 리소스를 찾을 수 없습니다.");
+    }
+
+    /**
+     * 8. 그 외 서버 내부에서 발생하는 모든 예외 처리 (Exception)
      */
     @ExceptionHandler(Exception.class)
     protected ResponseEntity<ErrorResponse> handleException(Exception e) {

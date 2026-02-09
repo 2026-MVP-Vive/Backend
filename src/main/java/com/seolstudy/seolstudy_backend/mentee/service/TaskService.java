@@ -37,6 +37,7 @@ public class TaskService {
                                 request.getDate(),
                                 request.getSubject(),
                                 menteeId);
+
                 Task savedTask = taskRepository.save(task);
                 return TaskResponse.of(savedTask, false, false, 0);
         }

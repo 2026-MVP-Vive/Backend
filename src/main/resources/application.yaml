@@ -1,8 +1,6 @@
 spring:
   application:
     name: seolstudy-backend
-  profiles:
-    default: local
   datasource:
     #Mysql Driver 설정
     #DB_HOST : host 주소, 로컬에서 사용 시 설정 필요없음 | DB_NAME 로컬에서 사용할 DB 이름

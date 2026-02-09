@@ -25,6 +25,8 @@ public class Task {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // ... (fields)
+
     @Column(name = "mentee_id", nullable = false)
     private Long menteeId;
 
@@ -54,8 +56,8 @@ public class Task {
     @Column(name = "confirmed_at")
     private LocalDateTime confirmedAt;
 
-    @Column(name = "created_by", nullable = false)
-    private Long createdBy;
+    @Column(name = "creator_id", nullable = false)
+    private Long creatorId;
 
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -65,12 +67,12 @@ public class Task {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
-    public Task(Long menteeId, String title, LocalDate taskDate, Subject subject, Long createdBy) {
+    public Task(Long menteeId, String title, LocalDate taskDate, Subject subject, Long creatorId) {
         this.menteeId = menteeId;
         this.title = title;
         this.taskDate = taskDate;
         this.subject = subject;
-        this.createdBy = createdBy;
+        this.creatorId = creatorId;
         this.isMentorAssigned = false;
         this.isMentorConfirmed = false;
     }

@@ -12,6 +12,7 @@ spring:
       hibernate:
         format_sql: true
     show-sql: true
+
   cloud:
     aws:
       stack:
@@ -23,3 +24,8 @@ spring:
         secret-key: test
       s3:
         bucket: test-bucket
+  jwt:
+    secret: test-secret-key-for-testing-purposes-only-1234567890
+    expiration: 1800000
+
+

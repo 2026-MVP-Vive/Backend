@@ -56,7 +56,7 @@ public class Task {
     @Column(name = "confirmed_at")
     private LocalDateTime confirmedAt;
 
-    @Column(name = "creator_id", nullable = false)
+    @Column(name = "creator_by", nullable = false)
     private Long creatorId;
 
     @CreatedDate

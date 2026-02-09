@@ -18,6 +18,7 @@ public class TaskDetailResponse {
     private String subjectName;
     private GoalDto goal;
     private Integer studyTime;
+    private boolean isUploadRequired;
     private boolean isMentorAssigned;
     private boolean isMentorConfirmed;
     private List<FileDto> materials;

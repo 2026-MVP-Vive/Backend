@@ -17,9 +17,8 @@ public class TaskResponse {
     private GoalResponse goal;
     private List<MaterialResponse> materials;
     private Integer studyTime;
+    private boolean isUploadRequired;
     private boolean isMentorConfirmed;
     private SubmissionResponse submission;
     private FeedbackResponse feedback;
 }
-
-

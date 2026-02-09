@@ -165,6 +165,7 @@ public class TaskService {
                                 .subjectName(task.getSubject() != null ? task.getSubject().getDescription() : null)
                                 .goal(goalDto)
                                 .studyTime(task.getStudyTime())
+                                .isUploadRequired(task.isUploadRequired())
                                 .isMentorAssigned(task.isMentorAssigned())
                                 .isMentorConfirmed(task.isMentorConfirmed())
                                 .materials(fileDtos)

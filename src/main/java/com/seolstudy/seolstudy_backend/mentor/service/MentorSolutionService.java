@@ -1,7 +1,9 @@
 package com.seolstudy.seolstudy_backend.mentor.service;
 
 import com.seolstudy.seolstudy_backend.global.file.domain.File;
+import com.seolstudy.seolstudy_backend.global.file.dto.FileUploadResponse;
 import com.seolstudy.seolstudy_backend.global.file.repository.FileRepository;
+import com.seolstudy.seolstudy_backend.global.file.service.FileService;
 import com.seolstudy.seolstudy_backend.mentee.domain.Solution;
 import com.seolstudy.seolstudy_backend.mentee.domain.SolutionMaterial;
 import com.seolstudy.seolstudy_backend.mentee.domain.Subject;
@@ -11,11 +13,13 @@ import com.seolstudy.seolstudy_backend.mentee.repository.SolutionRepository;
 import com.seolstudy.seolstudy_backend.mentee.repository.TaskRepository;
 import com.seolstudy.seolstudy_backend.mentee.repository.UserRepository;
 import com.seolstudy.seolstudy_backend.mentor.dto.response.MaterialResponse;
+import com.seolstudy.seolstudy_backend.mentor.dto.response.MentorSolutionCreateResponse;
 import com.seolstudy.seolstudy_backend.mentor.dto.response.MentorStudentSolutionResponse;
 import com.seolstudy.seolstudy_backend.mentor.dto.response.SolutionItemResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -30,6 +34,7 @@ public class MentorSolutionService {
     private final SolutionMaterialRepository solutionMaterialRepository;
     private final FileRepository fileRepository;
     private final TaskRepository taskRepository;
+    private final FileService fileService;
 
     public MentorStudentSolutionResponse getStudentSolutions(
             Long studentId,
@@ -102,6 +107,62 @@ public class MentorSolutionService {
                 studentId,
                 student.getName(),
                 responseList
+        );
+    }
+
+    @Transactional
+    public MentorSolutionCreateResponse createSolution(
+            Long studentId,
+            String title,
+            Subject subject,
+            List<MultipartFile> materials
+    ) {
+
+        // 1️⃣ 멘티 존재 확인
+        userRepository.findById(studentId)
+                .orElseThrow(() -> new NoSuchElementException("멘티를 찾을 수 없습니다."));
+
+        // 2️⃣ Solution 생성
+        Solution solution = new Solution(studentId, title, subject);
+        solutionRepository.save(solution);
+
+        // 3️⃣ 파일 업로드 + SolutionMaterial 연결
+        List<MaterialResponse> materialResponses = List.of();
+
+        if (materials != null && !materials.isEmpty()) {
+            materialResponses = materials.stream()
+                    .map(file -> {
+                        FileUploadResponse upload =
+                                fileService.uploadFile(
+                                        file,
+                                        File.FileCategory.MATERIAL,
+                                        studentId
+                                );
+
+                        solutionMaterialRepository.save(
+                                new SolutionMaterial(
+                                        solution.getId(),
+                                        upload.getId()
+                                )
+                        );
+
+                        return new MaterialResponse(
+                                upload.getId(),
+                                upload.getFileName(),
+                                upload.getUrl() + "/download"
+                        );
+                    })
+                    .toList();
+        }
+
+        // 4️⃣ 응답
+        return new MentorSolutionCreateResponse(
+                solution.getId(),
+                solution.getTitle(),
+                solution.getSubject(),
+                solution.getSubject().name(), // or getDisplayName() 있으면 그걸로
+                materialResponses,
+                solution.getCreatedAt()
         );
     }
 }

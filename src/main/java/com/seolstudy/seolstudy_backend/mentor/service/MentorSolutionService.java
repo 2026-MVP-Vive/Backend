@@ -12,10 +12,7 @@ import com.seolstudy.seolstudy_backend.mentee.repository.SolutionMaterialReposit
 import com.seolstudy.seolstudy_backend.mentee.repository.SolutionRepository;
 import com.seolstudy.seolstudy_backend.mentee.repository.TaskRepository;
 import com.seolstudy.seolstudy_backend.mentee.repository.UserRepository;
-import com.seolstudy.seolstudy_backend.mentor.dto.response.MaterialResponse;
-import com.seolstudy.seolstudy_backend.mentor.dto.response.MentorSolutionCreateResponse;
-import com.seolstudy.seolstudy_backend.mentor.dto.response.MentorStudentSolutionResponse;
-import com.seolstudy.seolstudy_backend.mentor.dto.response.SolutionItemResponse;
+import com.seolstudy.seolstudy_backend.mentor.dto.response.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -165,4 +162,81 @@ public class MentorSolutionService {
                 solution.getCreatedAt()
         );
     }
+
+    @Transactional
+    public MentorSolutionUpdateResponse updateSolution(
+            Long studentId,
+            Long solutionId,
+            String title,
+            Subject subject,
+            List<MultipartFile> materials,
+            List<Long> deleteFileIds
+    ) {
+
+        // 1️⃣ Solution 조회
+        Solution solution = solutionRepository.findById(solutionId)
+                .orElseThrow(() -> new NoSuchElementException("솔루션을 찾을 수 없습니다."));
+
+        // 2️⃣ 멘티 검증
+        if (!solution.getMenteeId().equals(studentId)) {
+            throw new IllegalArgumentException("해당 멘티의 솔루션이 아닙니다.");
+        }
+
+        // 3️⃣ 제목 수정
+        if (title != null && !title.isBlank()) {
+            solution.setTitle(title);
+        }
+
+        // 4️⃣ 과목 수정
+        if (subject != null) {
+            solution.setSubject(subject);
+        }
+
+        // 5️⃣ 기존 파일 삭제
+        if (deleteFileIds != null && !deleteFileIds.isEmpty()) {
+            deleteFileIds.forEach(fileId -> {
+
+                // solution_materials 삭제
+                solutionMaterialRepository
+                        .findAllBySolutionId(solutionId)
+                        .stream()
+                        .filter(sm -> sm.getFileId().equals(fileId))
+                        .findFirst()
+                        .ifPresent(solutionMaterialRepository::delete);
+
+                // 실제 파일 삭제 (S3 + DB)
+                fileService.deleteFile(fileId);
+            });
+        }
+
+        // 6️⃣ 새 파일 추가
+        if (materials != null && !materials.isEmpty()) {
+            materials.forEach(file -> {
+                FileUploadResponse upload =
+                        fileService.uploadFile(
+                                file,
+                                File.FileCategory.MATERIAL,
+                                studentId
+                        );
+
+                solutionMaterialRepository.save(
+                        new SolutionMaterial(
+                                solutionId,
+                                upload.getId()
+                        )
+                );
+            });
+        }
+
+        // 7️⃣ 저장
+        solutionRepository.save(solution);
+
+        return new MentorSolutionUpdateResponse(
+                solution.getId(),
+                solution.getTitle(),
+                solution.getSubject(),
+                solution.getUpdatedAt()
+        );
+    }
+
 }

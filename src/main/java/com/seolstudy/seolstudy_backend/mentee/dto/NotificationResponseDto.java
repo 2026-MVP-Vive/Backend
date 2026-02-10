@@ -8,7 +8,7 @@ import lombok.Getter;
 import java.time.LocalDateTime;
 
 @Getter
-@AllArgsConstructor
+@AllArgsConstructor // 🚀 필드가 추가되면 생성자도 자동으로 업데이트됩니다.
 public class NotificationResponseDto {
     private Long id;
     private NotificationType type;
@@ -16,8 +16,9 @@ public class NotificationResponseDto {
     private String body;
     private Long relatedId;
     private boolean isRead;
-    private boolean isSent; // 추가
+    private boolean isSent;
     private LocalDateTime createdAt;
+    private String studentName;
 
     public static NotificationResponseDto from(Notification notification) {
         return new NotificationResponseDto(
@@ -27,8 +28,9 @@ public class NotificationResponseDto {
                 notification.getBody(),
                 notification.getRelatedId(),
                 notification.isRead(),
-                notification.isSent(), // 추가
-                notification.getCreatedAt()
+                notification.isSent(),
+                notification.getCreatedAt(),
+                notification.getStudentName()
         );
     }
 }

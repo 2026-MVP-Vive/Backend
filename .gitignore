@@ -44,10 +44,9 @@ out/
 **/application-jwt.yaml
 **/application-jwt.yml
 
-**/seolstudy-c253a-firebase-adminsdk-*.json
-
 ### MacOS ###
 .DS_Store
 
 application-local.yaml
 run_local.bat
+resources/seolstudy-c253a-firebase-adminsdk-fbsvc-5c35636a4c.json

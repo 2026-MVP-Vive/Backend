@@ -25,78 +25,76 @@ import java.util.stream.Collectors;
 @Transactional(readOnly = true)
 public class PlannerService {
 
-    private final PlannerCompletionRepository plannerCompletionRepository;
-    private final TaskRepository taskRepository;
-    private final SubmissionRepository submissionRepository;
-    private final NotificationService notificationService;
-    private final MentorMenteeRepository mentorMenteeRepository;
-    private final UserRepository userRepository;
+        private final PlannerCompletionRepository plannerCompletionRepository;
+        private final TaskRepository taskRepository;
+        private final SubmissionRepository submissionRepository;
+        private final NotificationService notificationService;
+        private final MentorMenteeRepository mentorMenteeRepository;
+        private final UserRepository userRepository;
 
-    @Transactional
-    public PlannerCompletionResponse completeDailyPlanner(Long menteeId, LocalDate date,
-                                                          PlannerCompleteRequest request) {
-        // 1. Update specified tasks as completed
-        List<Long> taskIds = request.getTasks();
-        if (taskIds != null && !taskIds.isEmpty()) {
-            List<Task> tasksToUpdate = taskRepository.findAllById(taskIds);
-            for (Task task : tasksToUpdate) {
-                if (task.getMenteeId().equals(menteeId)) {
-                    task.setMenteeCompleted(true);
-                    task.setMenteeCompletedAt(LocalDateTime.now());
+        @Transactional
+        public PlannerCompletionResponse completeDailyPlanner(Long menteeId, LocalDate date,
+                        PlannerCompleteRequest request) {
+                // 1. Update specified tasks as completed
+                List<Long> taskIds = request.getTasks();
+                if (taskIds != null && !taskIds.isEmpty()) {
+                        List<Task> tasksToUpdate = taskRepository.findAllById(taskIds);
+                        for (Task task : tasksToUpdate) {
+                                if (task.getMenteeId().equals(menteeId)) {
+                                        task.setMenteeCompleted(true);
+                                        task.setMenteeCompletedAt(LocalDateTime.now());
+                                }
+                        }
+                        taskRepository.saveAll(tasksToUpdate);
                 }
             }
             taskRepository.saveAll(tasksToUpdate);
         }
 
-        // 2. Check if all tasks for the day are confirmed by mentor
-        List<Task> allDailyTasks = taskRepository.findAllByMenteeIdAndTaskDate(menteeId, date);
-        boolean allConfirmed = !allDailyTasks.isEmpty()
-                && allDailyTasks.stream().allMatch(Task::isMentorConfirmed);
+                // 2. Save planner completion record (Mentee Action)
+                // 멘토 확인 여부와 상관없이 멘티가 마감 요청을 하면 완료 처리 (피드백 요청)
+                if (!plannerCompletionRepository.existsByMenteeIdAndPlanDate(menteeId, date)) {
+                        PlannerCompletion completion = PlannerCompletion.builder()
+                                        .menteeId(menteeId)
+                                        .planDate(date)
+                                        .build();
+                        try {
+                                PlannerCompletion saved = plannerCompletionRepository.save(completion);
 
-        // 3. Already completed check (for idempotency)
-        if (plannerCompletionRepository.existsByMenteeIdAndPlanDate(menteeId, date)) {
-            PlannerCompletion existing = plannerCompletionRepository
-                    .findByMenteeIdAndPlanDate(menteeId, date).get();
-            return PlannerCompletionResponse.builder()
-                    .date(existing.getPlanDate())
-                    .completedAt(existing.getCompletedAt())
-                    .status("COMPLETED")
-                    .tasks(taskIds)
-                    .build();
-        }
+                                // 멘토 정보 탐색
+                                MentorMentee mentor = mentorMenteeRepository.findByMenteeId(menteeId)
+                                                .orElseThrow(() -> new BusinessException("담당 멘토를 찾을 수 없습니다.",
+                                                                ErrorCode.NOT_FOUND));
+                                // 멘티 정보 탐색
+                                User user = userRepository.findById(menteeId)
+                                                .orElseThrow(() -> new BusinessException("멘티 정보를 찾을 수 없습니다,",
+                                                                ErrorCode.NOT_FOUND));
+                                notificationService.createNotification(
+                                                mentor.getMentorId(),
+                                                NotificationType.TASK_COMPLETED,
+                                                user.getName() + " 학생의 플레너 마감 요청 접수",
+                                                "담당 멘티의 플레너 마감 요청이 접수되었습니다.",
+                                                saved.getId());
+                        } catch (Exception e) {
+                                // Fallback for DB errors or Notification errors
+                                // 이미 존재하거나 기타 에러시 로그를 남기거나 무시 (idempotency)
+                        }
+                }
 
-        // 4. If all confirmed, save planner completion record
-        if (allConfirmed) {
-            PlannerCompletion completion = PlannerCompletion.builder()
-                    .menteeId(menteeId)
-                    .planDate(date)
-                    .build();
-            try {
-                PlannerCompletion saved = plannerCompletionRepository.save(completion);
+                // 3. Return COMPLETED status
+                // DB 조회를 다시 해서 정확한 시간을 가져오거나, 현재 시간으로 반환
+                PlannerCompletion existing = plannerCompletionRepository
+                                .findByMenteeIdAndPlanDate(menteeId, date)
+                                .orElse(null);
 
-                //멘토 정보 탐색
-                MentorMentee mentor = mentorMenteeRepository.findByMenteeId(menteeId)
-                        .orElseThrow(() -> new BusinessException("담당 멘토를 찾을 수 없습니다.", ErrorCode.NOT_FOUND));
-                //멘티 정보 탐색
-                User user = userRepository.findById(menteeId)
-                                .orElseThrow(() -> new BusinessException("멘티 정보를 찾을 수 없습니다,", ErrorCode.NOT_FOUND));
-                notificationService.createNotification(
-                        mentor.getMentorId(),
-                        NotificationType.TASK_COMPLETED,
-                        user.getName() + " 학생의 플레너 마감 요청 접수",
-                        "담당 멘티의 플레너 마감 요청이 접수되었습니다.",
-                        saved.getId()
-                );
+                LocalDateTime completedAt = (existing != null) ? existing.getCompletedAt() : LocalDateTime.now();
 
                 return PlannerCompletionResponse.builder()
-                        .date(saved.getPlanDate())
-                        .completedAt(saved.getCompletedAt())
-                        .status("COMPLETED")
-                        .tasks(taskIds)
-                        .build();
-            } catch (Exception e) {
-                // Fallback for DB errors
-            }
+                                .date(date)
+                                .completedAt(completedAt)
+                                .status("COMPLETED")
+                                .tasks(taskIds)
+                                .build();
         }
 
         // 5. If not all confirmed, return waiting status

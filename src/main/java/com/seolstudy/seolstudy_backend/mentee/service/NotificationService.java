@@ -1,6 +1,7 @@
 package com.seolstudy.seolstudy_backend.mentee.service;
 
 import com.seolstudy.seolstudy_backend.mentee.domain.NotificationType;
+import com.seolstudy.seolstudy_backend.mentee.dto.NotificationListResponse;
 import com.seolstudy.seolstudy_backend.mentee.dto.NotificationResponseDto;
 import com.seolstudy.seolstudy_backend.mentee.repository.NotificationRepository;
 import lombok.RequiredArgsConstructor;
@@ -35,20 +36,29 @@ public class NotificationService {
         notificationRepository.save(notification);
     }
 
-    /**
-     * 읽지 않은 알림만 조회하고, 조회된 알림의 전송 상태(isSent)를 true로 변경합니다.
-     */
-    @Transactional // 🚀 상태 변경이 일어나므로 Transactional 필수!
-    public List<NotificationResponseDto> getUnreadNotifications(Long userId) {
-        // 1. 읽지 않은 알림 목록 조회
-        List<Notification> unreadNotifications = notificationRepository.findAllByUserIdAndIsReadFalseOrderByCreatedAtDesc(userId);
+    // NotificationService.java 내부
+    @Transactional
+    public NotificationListResponse getNotifications(Long userId, boolean unreadOnly) {
+        // 1. 조회 (로그에 찍힌 그 쿼리가 나갑니다)
+        List<Notification> notifications = unreadOnly
+                ? notificationRepository.findAllByUserIdAndIsReadFalseOrderByCreatedAtDesc(userId)
+                : notificationRepository.findAllByUserIdOrderByCreatedAtDesc(userId);
 
-        // 2. 전달될 알림들의 전송 상태를 true로 변경
-        unreadNotifications.forEach(Notification::markAsSent);
-
-        // 3. DTO로 변환하여 반환
-        return unreadNotifications.stream()
+        // 🚀 [핵심] 리스트가 증발하기 전에 DTO로 먼저 복사해두기
+        List<NotificationResponseDto> responseDtos = notifications.stream()
                 .map(NotificationResponseDto::from)
                 .collect(Collectors.toList());
+
+        // 2. 그 다음 DB 상태 변경 (is_sent = true)
+        notifications.forEach(Notification::markAsSent);
+
+        // 3. 카운트 조회
+        long unreadCount = notificationRepository.countByUserIdAndIsReadFalse(userId);
+
+        // 4. 미리 복사해둔 responseDtos를 반환!
+        return NotificationListResponse.builder()
+                .notifications(responseDtos)
+                .unreadCount(unreadCount)
+                .build();
     }
 }

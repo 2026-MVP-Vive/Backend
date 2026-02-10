@@ -47,6 +47,9 @@ public class PlannerService {
                         }
                         taskRepository.saveAll(tasksToUpdate);
                 }
+            }
+            taskRepository.saveAll(tasksToUpdate);
+        }
 
                 // 2. Save planner completion record (Mentee Action)
                 // 멘토 확인 여부와 상관없이 멘티가 마감 요청을 하면 완료 처리 (피드백 요청)
@@ -94,58 +97,67 @@ public class PlannerService {
                                 .build();
         }
 
-        public PlannerCompletionResponse getPlannerCompletionStatus(Long menteeId, LocalDate date) {
-                return plannerCompletionRepository.findByMenteeIdAndPlanDate(menteeId, date)
-                                .map(completion -> PlannerCompletionResponse.builder()
-                                                .date(completion.getPlanDate())
-                                                .completedAt(completion.getCompletedAt())
-                                                .status("COMPLETED")
-                                                .build())
-                                .orElse(PlannerCompletionResponse.builder()
-                                                .date(date)
-                                                .completedAt(null)
-                                                .status("PENDING")
-                                                .build());
+        // 5. If not all confirmed, return waiting status
+        return PlannerCompletionResponse.builder()
+                .date(date)
+                .completedAt(null)
+                .status("WAITING_FOR_CONFIRMATION")
+                .tasks(taskIds)
+                .build();
+    }
+
+    public PlannerCompletionResponse getPlannerCompletionStatus(Long menteeId, LocalDate date) {
+        return plannerCompletionRepository.findByMenteeIdAndPlanDate(menteeId, date)
+                .map(completion -> PlannerCompletionResponse.builder()
+                        .date(completion.getPlanDate())
+                        .completedAt(completion.getCompletedAt())
+                        .status("COMPLETED")
+                        .build())
+                .orElse(PlannerCompletionResponse.builder()
+                        .date(date)
+                        .completedAt(null)
+                        .status("PENDING")
+                        .build());
+    }
+
+    public MonthlyPlanResponse getMonthlyPlan(Long menteeId, int year, int month) {
+        YearMonth yearMonth = YearMonth.of(year, month);
+        LocalDate startDate = yearMonth.atDay(1);
+        LocalDate endDate = yearMonth.atEndOfMonth();
+
+        List<Task> tasks = taskRepository.findAllByMenteeIdAndTaskDateBetween(menteeId, startDate, endDate);
+
+        Map<LocalDate, List<Task>> tasksByDate = tasks.stream()
+                .collect(Collectors.groupingBy(Task::getTaskDate));
+
+        List<DailyPlanDto> plans = new ArrayList<>();
+        for (int day = 1; day <= yearMonth.lengthOfMonth(); day++) {
+            LocalDate date = yearMonth.atDay(day);
+            List<Task> dailyTasks = tasksByDate.getOrDefault(date, List.of());
+
+            int taskCount = dailyTasks.size();
+
+            int completedCount = (int) dailyTasks.stream()
+                    .filter(Task::isMentorConfirmed)
+                    .count();
+
+            boolean hasTask = taskCount > 0;
+            String dayOfWeek = date.getDayOfWeek().getDisplayName(TextStyle.SHORT, Locale.ENGLISH)
+                    .toUpperCase();
+
+            plans.add(DailyPlanDto.builder()
+                    .date(date)
+                    .dayOfWeek(dayOfWeek)
+                    .taskCount(taskCount)
+                    .completedCount(completedCount)
+                    .hasTask(hasTask)
+                    .build());
         }
 
-        public MonthlyPlanResponse getMonthlyPlan(Long menteeId, int year, int month) {
-                YearMonth yearMonth = YearMonth.of(year, month);
-                LocalDate startDate = yearMonth.atDay(1);
-                LocalDate endDate = yearMonth.atEndOfMonth();
-
-                List<Task> tasks = taskRepository.findAllByMenteeIdAndTaskDateBetween(menteeId, startDate, endDate);
-
-                Map<LocalDate, List<Task>> tasksByDate = tasks.stream()
-                                .collect(Collectors.groupingBy(Task::getTaskDate));
-
-                List<DailyPlanDto> plans = new ArrayList<>();
-                for (int day = 1; day <= yearMonth.lengthOfMonth(); day++) {
-                        LocalDate date = yearMonth.atDay(day);
-                        List<Task> dailyTasks = tasksByDate.getOrDefault(date, List.of());
-
-                        int taskCount = dailyTasks.size();
-
-                        int completedCount = (int) dailyTasks.stream()
-                                        .filter(Task::isMentorConfirmed)
-                                        .count();
-
-                        boolean hasTask = taskCount > 0;
-                        String dayOfWeek = date.getDayOfWeek().getDisplayName(TextStyle.SHORT, Locale.ENGLISH)
-                                        .toUpperCase();
-
-                        plans.add(DailyPlanDto.builder()
-                                        .date(date)
-                                        .dayOfWeek(dayOfWeek)
-                                        .taskCount(taskCount)
-                                        .completedCount(completedCount)
-                                        .hasTask(hasTask)
-                                        .build());
-                }
-
-                return MonthlyPlanResponse.builder()
-                                .year(year)
-                                .month(month)
-                                .plans(plans)
-                                .build();
-        }
+        return MonthlyPlanResponse.builder()
+                .year(year)
+                .month(month)
+                .plans(plans)
+                .build();
+    }
 }

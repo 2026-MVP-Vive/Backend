@@ -41,30 +41,58 @@ public class MentorTaskService {
     private final FcmTokenRepository fcmTokenRepository;
     private final FcmService fcmService;
     private final SecurityUtil securityUtil;
-    
+
     public MentorStudentTaskResponse getStudentTasks(Long studentId, LocalDate date) {
 
-        // 나중에 access token발급 후에 추가해야함 (테스트는 security config 테스트용으로 테스트)
-        // Long mentorId = SecurityUtil.getLoginUserId();
-
-        // // 1️⃣ 멘토-멘티 관계 검증
-        // if (!mentorMenteeRepository.existsByMentorIdAndMenteeId(mentorId, studentId))
-        // {
-        // throw new IllegalArgumentException("담당 멘티가 아닙니다.");
-        // }
-
-        // 2️⃣ 멘티 정보
+        // 1️⃣ 멘티 확인
         User student = userRepository.findById(studentId)
                 .orElseThrow(() -> new NoSuchElementException("멘티를 찾을 수 없습니다."));
 
-        // 3️⃣ 날짜별 Task 조회
+        // 2️⃣ 날짜별 Task 조회
         List<Task> tasks = taskRepository.findAllByMenteeIdAndTaskDate(studentId, date);
 
+        if (tasks.isEmpty()) {
+            return new MentorStudentTaskResponse(
+                    studentId,
+                    student.getName(),
+                    date,
+                    false,
+                    List.of(),
+                    List.of()
+            );
+        }
+
+        // =========================
+        // ⭐⭐⭐ [추가] batch 조회용 taskIds
+        // =========================
+        List<Long> taskIds = tasks.stream()
+                .map(Task::getId)
+                .toList();
+
+        // =========================
+        // ⭐⭐⭐ [추가] 피드백 존재 여부 batch 조회
+        // =========================
+        var feedbackTaskIds = feedbackRepository.findAllByTaskIdIn(taskIds)
+                .stream()
+                .map(Feedback::getTaskId)
+                .collect(java.util.stream.Collectors.toSet());
+
+        // (선택) submission도 batch로
+        var submissionMap = submissionRepository.findAllByTaskIdIn(taskIds)
+                .stream()
+                .collect(java.util.stream.Collectors.toMap(
+                        Submission::getTaskId,
+                        s -> s
+                ));
+
+        // 3️⃣ TaskResponse 변환
         List<TaskResponse> taskResponses = tasks.stream()
                 .map(task -> {
 
-                    Submission submission = submissionRepository.findByTaskId(task.getId());
+                    Submission submission = submissionMap.get(task.getId());
                     Feedback feedback = feedbackRepository.findByTaskId(task.getId());
+
+                    boolean hasFeedback = feedbackTaskIds.contains(task.getId());
 
                     return TaskResponse.builder()
                             .id(task.getId())
@@ -88,11 +116,14 @@ public class MentorTaskService {
                                     : new FeedbackResponse(
                                     feedback.getId(),
                                     feedback.isImportant()))
+                            .hasFeedback(hasFeedback)
                             .build();
                 })
                 .toList();
 
-        boolean isCompleted = plannerCompletionRepository.existsByMenteeIdAndPlanDate(studentId, date);
+        // 4️⃣ 하루 플래너 완료 여부
+        boolean isCompleted =
+                plannerCompletionRepository.existsByMenteeIdAndPlanDate(studentId, date);
 
         return new MentorStudentTaskResponse(
                 studentId,
@@ -100,7 +131,7 @@ public class MentorTaskService {
                 date,
                 isCompleted,
                 taskResponses,
-                List.of() // comments 없음
+                List.of()
         );
     }
 

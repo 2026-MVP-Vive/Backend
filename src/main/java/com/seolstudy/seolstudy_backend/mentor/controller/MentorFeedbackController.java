@@ -10,6 +10,7 @@ import com.seolstudy.seolstudy_backend.mentor.dto.request.MentorFeedbackUpdateRe
 import com.seolstudy.seolstudy_backend.mentor.dto.request.MentorOverallFeedbackRequest;
 import com.seolstudy.seolstudy_backend.mentor.dto.response.MentorFeedbackCreateResponse;
 import com.seolstudy.seolstudy_backend.mentor.dto.response.MentorFeedbackUpdateResponse;
+import com.seolstudy.seolstudy_backend.mentor.dto.response.MentorOverallFeedbackGetResponse;
 import com.seolstudy.seolstudy_backend.mentor.dto.response.MentorOverallFeedbackResponse;
 import com.seolstudy.seolstudy_backend.mentor.service.MentorFeedbackService;
 import lombok.RequiredArgsConstructor;
@@ -51,5 +52,15 @@ public class MentorFeedbackController {
                 mentorFeedbackService.upsertOverallFeedback(studentId, request)
         );
     }
+    @GetMapping("/students/{studentId}/feedbacks/overall")
+    public ApiResponse<MentorOverallFeedbackGetResponse> getOverallFeedback(
+            @PathVariable Long studentId,
+            @RequestParam String date
+    ) {
+        return ApiResponse.success(
+                mentorFeedbackService.getOverallFeedback(studentId, date)
+        );
+    }
+
 
 }

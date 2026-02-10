@@ -12,11 +12,13 @@ import com.seolstudy.seolstudy_backend.mentor.dto.request.MentorFeedbackUpdateRe
 import com.seolstudy.seolstudy_backend.mentor.dto.request.MentorOverallFeedbackRequest;
 import com.seolstudy.seolstudy_backend.mentor.dto.response.MentorFeedbackCreateResponse;
 import com.seolstudy.seolstudy_backend.mentor.dto.response.MentorFeedbackUpdateResponse;
+import com.seolstudy.seolstudy_backend.mentor.dto.response.MentorOverallFeedbackGetResponse;
 import com.seolstudy.seolstudy_backend.mentor.dto.response.MentorOverallFeedbackResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.NoSuchElementException;
 
 @Service
@@ -160,4 +162,38 @@ public class MentorFeedbackService {
                 saved.getUpdatedAt()
         );
     }
+    @Transactional(readOnly = true)
+    public MentorOverallFeedbackGetResponse getOverallFeedback(
+            Long studentId,
+            String date
+    ) {
+        // 1️⃣ date 파싱
+        LocalDate feedbackDate;
+        try {
+            feedbackDate = LocalDate.parse(date);
+        } catch (Exception e) {
+            throw new IllegalArgumentException("date 형식은 YYYY-MM-DD 이어야 합니다.");
+        }
+
+        // 2️⃣ 멘티 존재 확인
+        userRepository.findById(studentId)
+                .orElseThrow(() -> new NoSuchElementException("멘티를 찾을 수 없습니다."));
+
+        // 3️⃣ 총평 조회
+        return overallFeedbackRepository
+                .findByMenteeIdAndFeedbackDate(studentId, feedbackDate)
+                .map(overallFeedback ->
+                        new MentorOverallFeedbackGetResponse(
+                                overallFeedback.getId(),
+                                overallFeedback.getFeedbackDate(),
+                                overallFeedback.getContent(),
+                                true,
+                                overallFeedback.getUpdatedAt()
+                        )
+                )
+                .orElseGet(() ->
+                        MentorOverallFeedbackGetResponse.empty(feedbackDate)
+                );
+    }
+
 }

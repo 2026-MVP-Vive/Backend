@@ -44,6 +44,8 @@ out/
 **/application-jwt.yaml
 **/application-jwt.yml
 
+**/seolstudy-c253a-firebase-adminsdk-*.json
+
 ### MacOS ###
 .DS_Store
 

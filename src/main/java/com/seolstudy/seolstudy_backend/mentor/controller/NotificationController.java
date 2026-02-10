@@ -19,17 +19,13 @@ public class NotificationController {
     private final NotificationService notificationService;
     private final SecurityUtil securityUtil;
 
-    /**
-     * 현재 로그인한 멘토(사용자)의 알림 목록을 조회합니다.
-     * 프론트엔드에서 1분마다 주기적으로 호출(Polling)하는 API입니다.
-     */
     @GetMapping("/notifications")
-    public ResponseEntity<List<NotificationResponseDto>> getMyNotifications() {
-        // 1. 현재 로그인한 유저 ID 가져오기
+    public ResponseEntity<List<NotificationResponseDto>> getMyUnreadNotifications() {
+        // 현재 로그인한 멘토 ID 추출
         Long userId = securityUtil.getCurrentUserId();
 
-        // 2. 해당 유저의 알림 목록 조회 (최신순)
-        List<NotificationResponseDto> notifications = notificationService.getNotifications(userId);
+        // 읽지 않은 알림만 가져오고 isSent 업데이트
+        List<NotificationResponseDto> notifications = notificationService.getUnreadNotifications(userId);
 
         return ResponseEntity.ok(notifications);
     }

@@ -36,10 +36,18 @@ public class NotificationService {
     }
 
     /**
-     * 유저별 알림 목록을 최신순으로 조회합니다.
+     * 읽지 않은 알림만 조회하고, 조회된 알림의 전송 상태(isSent)를 true로 변경합니다.
      */
-    public List<NotificationResponseDto> getNotifications(Long userId) {
-        return notificationRepository.findAllByUserIdOrderByCreatedAtDesc(userId).stream()
+    @Transactional // 🚀 상태 변경이 일어나므로 Transactional 필수!
+    public List<NotificationResponseDto> getUnreadNotifications(Long userId) {
+        // 1. 읽지 않은 알림 목록 조회
+        List<Notification> unreadNotifications = notificationRepository.findAllByUserIdAndIsReadFalseOrderByCreatedAtDesc(userId);
+
+        // 2. 전달될 알림들의 전송 상태를 true로 변경
+        unreadNotifications.forEach(Notification::markAsSent);
+
+        // 3. DTO로 변환하여 반환
+        return unreadNotifications.stream()
                 .map(NotificationResponseDto::from)
                 .collect(Collectors.toList());
     }

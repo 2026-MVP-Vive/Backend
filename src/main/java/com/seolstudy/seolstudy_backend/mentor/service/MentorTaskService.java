@@ -40,7 +40,8 @@ public class MentorTaskService {
     private final FileService fileService;
     private final FcmTokenRepository fcmTokenRepository;
     private final FcmService fcmService;
-
+    private final SecurityUtil securityUtil;
+    
     public MentorStudentTaskResponse getStudentTasks(Long studentId, LocalDate date) {
 
         // 나중에 access token발급 후에 추가해야함 (테스트는 security config 테스트용으로 테스트)
@@ -124,7 +125,7 @@ public class MentorTaskService {
                 request.getTitle(),
                 request.getDate(),
                 null,
-                studentId // ⚠️ 임시 (JWT 붙이면 mentorId로 교체)
+                securityUtil.getCurrentUserId()
         );
 
         // 멘토가 준 할 일이므로
@@ -376,7 +377,7 @@ public class MentorTaskService {
                     fcmService.sendNotification(token.getToken(), title, body, task.getId())
             );
         }
-        
+
         return new MentorTaskConfirmResponse(
                 task.getId(),
                 task.isMentorConfirmed(),

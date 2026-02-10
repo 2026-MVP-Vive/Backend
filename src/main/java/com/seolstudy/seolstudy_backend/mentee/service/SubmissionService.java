@@ -2,6 +2,8 @@ package com.seolstudy.seolstudy_backend.mentee.service;
 
 import com.seolstudy.seolstudy_backend.global.error.BusinessException;
 import com.seolstudy.seolstudy_backend.global.error.ErrorCode;
+import com.seolstudy.seolstudy_backend.global.fcm.domain.FcmToken;
+import com.seolstudy.seolstudy_backend.global.fcm.repository.FcmTokenRepository;
 import com.seolstudy.seolstudy_backend.global.file.domain.File;
 import com.seolstudy.seolstudy_backend.global.file.dto.FileUploadResponse;
 import com.seolstudy.seolstudy_backend.global.file.service.FileService;
@@ -13,18 +15,22 @@ import com.seolstudy.seolstudy_backend.mentee.repository.SubmissionRepository;
 import com.seolstudy.seolstudy_backend.mentee.repository.TaskRepository;
 import com.seolstudy.seolstudy_backend.mentee.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
+@Slf4j
 public class SubmissionService {
 
     private final TaskRepository taskRepository;
     private final SubmissionRepository submissionRepository;
-    private final UserRepository userRepository;
+    private final FcmTokenRepository fcmTokenRepository;
     private final FileService fileService;
     private final FcmService fcmService;
 
@@ -64,8 +70,13 @@ public class SubmissionService {
 
     @Transactional
     public void sendNotificationToMentor(Long menteeId, Long taskId){
-        String fcmToken = userRepository.findMentorTokenByMenteeId(menteeId)
-                .orElseThrow(() -> new BusinessException("멘티 정보를 찾을 수 없습니다.", ErrorCode.NOT_FOUND));
-        fcmService.sendNotification(fcmToken, "과제 제출 알림", "멘티가 과제를 제출했습니다! 확인해 주세요.", taskId);
+        List<FcmToken> fcmToken = fcmTokenRepository.findAllByUserId(menteeId);
+        if (fcmToken.isEmpty()) {
+            log.warn("멘티(ID: {})의 FCM 토큰이 없어 알림을 보낼 수 없습니다.", menteeId);
+            return;
+        }
+        for(FcmToken token : fcmToken){
+            fcmService.sendNotification(token.getToken(), "과제 제출 알림", "멘티가 과제를 제출했습니다! 확인해 주세요.", taskId);
+        }
     }
 }

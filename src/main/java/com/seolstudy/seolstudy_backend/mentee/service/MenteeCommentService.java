@@ -8,6 +8,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -17,10 +19,11 @@ public class MenteeCommentService {
 
     @Transactional
     public CommentCreateResponse createComment(Long menteeId, CommentCreateRequest request) {
+        LocalDate commentDate = request.getDate() != null ? request.getDate() : LocalDate.now();
         Comment comment = Comment.builder()
                 .menteeId(menteeId)
                 .content(request.getContent())
-                .commentDate(request.getDate())
+                .commentDate(commentDate)
                 .build();
 
         Comment savedComment = commentRepository.save(comment);

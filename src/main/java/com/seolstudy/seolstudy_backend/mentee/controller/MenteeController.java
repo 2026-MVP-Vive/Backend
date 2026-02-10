@@ -2,11 +2,16 @@ package com.seolstudy.seolstudy_backend.mentee.controller;
 
 import com.seolstudy.seolstudy_backend.global.util.SecurityUtil;
 import com.seolstudy.seolstudy_backend.mentee.dto.*;
+import com.seolstudy.seolstudy_backend.mentee.dto.MonthlyReportDetailResponse;
 import com.seolstudy.seolstudy_backend.mentee.service.MenteeFeedbackService;
 import com.seolstudy.seolstudy_backend.mentee.service.SubmissionService;
 import com.seolstudy.seolstudy_backend.mentee.service.TaskService;
 import com.seolstudy.seolstudy_backend.mentee.service.AchievementService;
 import com.seolstudy.seolstudy_backend.mentee.service.MenteeReportService;
+import com.seolstudy.seolstudy_backend.mentee.service.PlannerService;
+import com.seolstudy.seolstudy_backend.mentee.service.ZoomMeetingService;
+import com.seolstudy.seolstudy_backend.mentee.dto.MonthlyPlanResponse;
+import com.seolstudy.seolstudy_backend.mentee.dto.MonthlyReportListResponse;
 import java.time.LocalDate;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -15,6 +20,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -27,6 +33,8 @@ public class MenteeController {
     private final SubmissionService submissionService;
     private final AchievementService achievementService;
     private final MenteeReportService menteeReportService;
+    private final PlannerService plannerService;
+    private final ZoomMeetingService zoomMeetingService;
 
     private final SecurityUtil securityUtil;
 
@@ -155,6 +163,85 @@ public class MenteeController {
     public ResponseEntity<Map<String, Object>> getWeeklyReportDetail(@PathVariable("reportId") Long reportId) {
         Long menteeId = securityUtil.getCurrentUserId();
         WeeklyReportDetailResponse response = menteeReportService.getWeeklyReportDetail(menteeId, reportId);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("success", true);
+        result.put("data", response);
+
+        return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/monthly-reports/{reportId}")
+    public ResponseEntity<Map<String, Object>> getMonthlyReportDetail(@PathVariable("reportId") Long reportId) {
+        Long menteeId = securityUtil.getCurrentUserId();
+        MonthlyReportDetailResponse response = menteeReportService.getMonthlyReportDetail(menteeId, reportId);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("success", true);
+        result.put("data", response);
+
+        return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/monthly-plan")
+    public ResponseEntity<Map<String, Object>> getMonthlyPlan(
+            @RequestParam("year") int year,
+            @RequestParam("month") int month) {
+        Long menteeId = securityUtil.getCurrentUserId();
+        MonthlyPlanResponse response = plannerService.getMonthlyPlan(menteeId, year, month);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("success", true);
+        result.put("data", response);
+
+        return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/monthly-reports")
+    public ResponseEntity<Map<String, Object>> getMonthlyReports() {
+        Long menteeId = securityUtil.getCurrentUserId();
+        MonthlyReportListResponse response = menteeReportService.getMonthlyReports(menteeId);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("success", true);
+        result.put("data", response);
+
+        return ResponseEntity.ok(result);
+    }
+
+    @PostMapping("/planner/{date}/complete")
+    public ResponseEntity<Map<String, Object>> completePlanner(@PathVariable("date") String dateStr) {
+        Long menteeId = securityUtil.getCurrentUserId();
+        LocalDate date = LocalDate.parse(dateStr);
+        PlannerCompletionResponse response = plannerService.completeDailyPlanner(menteeId, date);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("success", true);
+        result.put("data", response);
+
+        return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/zoom-meetings")
+    public ResponseEntity<Map<String, Object>> getZoomMeetings(
+            @RequestParam(value = "status", required = false) String status) {
+        Long menteeId = securityUtil.getCurrentUserId();
+        List<ZoomMeetingResponse> meetings = zoomMeetingService.getZoomMeetings(menteeId, status);
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("meetings", meetings);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("success", true);
+        result.put("data", data);
+
+        return ResponseEntity.ok(result);
+    }
+
+    @PostMapping("/zoom-meetings")
+    public ResponseEntity<Map<String, Object>> requestZoomMeeting(@Valid @RequestBody ZoomMeetingRequest request) {
+        Long menteeId = securityUtil.getCurrentUserId();
+        ZoomMeetingResponse response = zoomMeetingService.requestZoomMeeting(menteeId, request);
 
         Map<String, Object> result = new HashMap<>();
         result.put("success", true);

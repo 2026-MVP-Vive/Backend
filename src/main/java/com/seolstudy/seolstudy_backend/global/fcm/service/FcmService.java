@@ -1,9 +1,6 @@
 package com.seolstudy.seolstudy_backend.global.fcm.service;
 
-import com.google.firebase.messaging.FirebaseMessaging;
-import com.google.firebase.messaging.FirebaseMessagingException;
-import com.google.firebase.messaging.Message;
-import com.google.firebase.messaging.Notification;
+import com.google.firebase.messaging.*;
 import com.seolstudy.seolstudy_backend.global.error.BusinessException;
 import com.seolstudy.seolstudy_backend.global.error.ErrorCode;
 import com.seolstudy.seolstudy_backend.global.fcm.domain.FcmToken;
@@ -12,6 +9,7 @@ import com.seolstudy.seolstudy_backend.mentee.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -20,6 +18,7 @@ public class FcmService {
     private final FcmTokenRepository fcmTokenRepository;
 
     /** 현재 클라이언트의 토큰이 DB에 저장된 토큰과 다르면 갱신, 없으면 토큰값을 저장 */
+    @Transactional
     public void saveOrUpdateToken(Long userId, String tokenValue) {
         // 1. 해당 토큰이 이미 DB에 있는지 확인
         fcmTokenRepository.findByToken(tokenValue)
@@ -44,21 +43,37 @@ public class FcmService {
     }
 
     /** 알림 전송 서비스 */
+    @Transactional
     public void sendNotification(String token, String title, String body, Long taskId){
         Message message = Message.builder()
                 .setToken(token)
                 .setNotification(Notification.builder()
-                        .setTitle(title)
+                        .setTitle("[설스터디]" + title)
                         .setBody(body)
                         .build())
                 .putData("taskId", String.valueOf(taskId))
+                .setWebpushConfig(WebpushConfig.builder()
+                        .putHeader("Urgency", "high") //  'Urgency' 헤더를 추가해서 기기를 강제로 깨웁니다
+                        .setFcmOptions(WebpushFcmOptions.withLink("https://seolstudy.duckdns.org"))
+                        .setNotification(WebpushNotification.builder() // 웹 전용 노티 설정 보강
+                                .setTitle("[설스터디] " + title)
+                                .setBody(body)
+                                .setIcon("https://cdn-icons-png.flaticon.com/512/3119/3119338.png") // 아이콘이 없으면 알림이 안 뜰 때가 있음
+                                .setVibrate(new int[]{200, 100, 200}) // 진동 설정 (안드로이드 웹앱용)
+                                .build())
+                        .build())
                 .build();
         try{
-            log.info("멘토 토큰 발견: {}", token); // 이게 찍히는지 확인
+            log.info("유저 토큰 발견: {}", token); // 이게 찍히는지 확인
             FirebaseMessaging.getInstance().send(message);
             System.out.println("구글 서버로 전송 성공!"); // 이 로그가 찍히는지 확인
         } catch(FirebaseMessagingException e){
-            throw new BusinessException("메시지 전송 중 에러가 발생했습니다.", ErrorCode.INTERNAL_ERROR);
+            if (MessagingErrorCode.UNREGISTERED.equals(e.getMessagingErrorCode())) {
+                log.warn("만료된 토큰을 발견하여 삭제합니다: {}", token);
+                fcmTokenRepository.deleteByToken(token);
+            } else {
+                throw new BusinessException("메시지 전송 중 에러가 발생했습니다.", ErrorCode.INTERNAL_ERROR);
+            }
         }
     }
 }

@@ -14,12 +14,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class MenteeProfileController {
 
     private final MenteeProfileService menteeProfileService;
+    private final com.seolstudy.seolstudy_backend.global.util.SecurityUtil securityUtil;
 
     @GetMapping("/profile")
     public ApiResponse<MenteeProfileResponse> getProfile() {
-        // TODO: Get authenticated user ID from security context
-        // For MVP, hardcoding to Mentee 1 (Min Yujin, id=2)
-        Long menteeId = 2L;
+        Long menteeId = securityUtil.getCurrentUserId();
 
         MenteeProfileResponse response = menteeProfileService.getMenteeProfile(menteeId);
         return ApiResponse.success(response);

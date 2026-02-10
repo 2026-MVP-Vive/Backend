@@ -2,19 +2,18 @@ package com.seolstudy.seolstudy_backend.mentee.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Getter;
+import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
+@Data
 @Builder
-public class CommentCreateRequest {
-
-    private String content;
+@AllArgsConstructor
+@NoArgsConstructor
+public class PlannerCompletionResponse {
     private LocalDate date;
+    private LocalDateTime completedAt;
+    private String status;
 }

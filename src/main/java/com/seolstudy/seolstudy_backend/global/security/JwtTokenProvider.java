@@ -27,7 +27,7 @@ import java.util.Date;
 public class JwtTokenProvider {
     @Value("${jwt.secret}")
     private String secretKey; //토큰 발급 비밀키
-    private final long accessTokenValidTime = 30 * 60 * 1000L; // 30분
+    private final long accessTokenValidTime = 60 * 60 * 1000L; // 1시간
     private final long refreshTokenValidTime = 14 * 24 * 60 * 60 * 1000L; // 14일
 
     private final UserDetailsService userDetailService;

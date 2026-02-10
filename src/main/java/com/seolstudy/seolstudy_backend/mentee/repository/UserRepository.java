@@ -10,9 +10,4 @@ import java.util.Optional;
 public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findById(Long aLong);
     Optional<User> findByLoginId(String loginId);
-
-    @Query("SELECT u.fcm_Token FROM User u " +
-            "JOIN MentorMentee mm ON mm.mentorId = u.id " +
-            "WHERE mm.menteeId = :menteeId")
-    Optional<String> findMentorTokenByMenteeId(@Param("menteeId") Long menteeId);
 }

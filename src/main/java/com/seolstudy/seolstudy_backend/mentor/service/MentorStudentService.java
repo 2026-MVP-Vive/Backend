@@ -1,5 +1,6 @@
 package com.seolstudy.seolstudy_backend.mentor.service;
 
+import com.seolstudy.seolstudy_backend.global.util.SecurityUtil;
 import com.seolstudy.seolstudy_backend.mentee.domain.MentorMentee;
 import com.seolstudy.seolstudy_backend.mentee.domain.Task;
 import com.seolstudy.seolstudy_backend.mentee.domain.User;
@@ -22,6 +23,7 @@ public class MentorStudentService {
     private final UserRepository userRepository;
     private final TaskRepository taskRepository;
     private final FeedbackRepository feedbackRepository;
+    private final SecurityUtil securityUtil;
 
     public MentorStudentResponse getMyStudents() {
         Long mentorId = getCurrentMentorId(); // 🔑 JWT에서 꺼낸다고 가정

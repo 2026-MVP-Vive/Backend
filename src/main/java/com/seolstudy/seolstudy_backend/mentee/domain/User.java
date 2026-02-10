@@ -44,13 +44,6 @@ public class User {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
-    /**
-     * Fcm 구현를 위해 User에 추가된 속성입니다.
-     * 해당 토큰으로 메시지를 전송하면 토큰의 주인의 기기로 메시지가 전송됩니다.
-     * */
-    @Column(name = "fcm_token")
-    private String fcm_Token;
-
     public User(String loginId, String password, String name, UserRole role) {
         this.loginId = loginId;
         this.password = password;

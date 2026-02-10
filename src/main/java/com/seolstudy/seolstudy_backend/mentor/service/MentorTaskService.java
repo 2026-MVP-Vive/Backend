@@ -1,5 +1,9 @@
 package com.seolstudy.seolstudy_backend.mentor.service;
 
+import com.seolstudy.seolstudy_backend.global.fcm.controller.FcmTokenController;
+import com.seolstudy.seolstudy_backend.global.fcm.domain.FcmToken;
+import com.seolstudy.seolstudy_backend.global.fcm.repository.FcmTokenRepository;
+import com.seolstudy.seolstudy_backend.global.fcm.service.FcmService;
 import com.seolstudy.seolstudy_backend.global.file.domain.File;
 import com.seolstudy.seolstudy_backend.global.file.dto.FileUploadResponse;
 import com.seolstudy.seolstudy_backend.global.file.service.FileService;
@@ -11,6 +15,7 @@ import com.seolstudy.seolstudy_backend.mentor.dto.request.MentorTaskCreateReques
 import com.seolstudy.seolstudy_backend.mentor.dto.request.MentorTaskUpdateRequest;
 import com.seolstudy.seolstudy_backend.mentor.dto.response.*;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,16 +24,15 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.NoSuchElementException;
-import com.seolstudy.seolstudy_backend.global.util.SecurityUtil;
 import com.seolstudy.seolstudy_backend.mentee.repository.SolutionRepository;
 import org.springframework.web.multipart.MultipartFile;
 
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
+@Slf4j
 public class MentorTaskService {
 
-    private final MentorMenteeRepository mentorMenteeRepository;
     private final UserRepository userRepository;
     private final TaskRepository taskRepository;
     private final SubmissionRepository submissionRepository;
@@ -36,15 +40,19 @@ public class MentorTaskService {
     private final SolutionRepository solutionRepository;
     private final TaskMaterialRepository taskMaterialRepository;
     private final FileService fileService;
+    private final FcmService fcmService;
+    private final FcmTokenRepository fcmTokenRepository;
+
     public MentorStudentTaskResponse getStudentTasks(Long studentId, LocalDate date) {
 
         // 나중에 access token발급 후에 추가해야함 (테스트는 security config 테스트용으로 테스트)
-//        Long mentorId = SecurityUtil.getLoginUserId();
+        // Long mentorId = SecurityUtil.getLoginUserId();
 
-//        // 1️⃣ 멘토-멘티 관계 검증
-//        if (!mentorMenteeRepository.existsByMentorIdAndMenteeId(mentorId, studentId)) {
-//            throw new IllegalArgumentException("담당 멘티가 아닙니다.");
-//        }
+        // // 1️⃣ 멘토-멘티 관계 검증
+        // if (!mentorMenteeRepository.existsByMentorIdAndMenteeId(mentorId, studentId))
+        // {
+        // throw new IllegalArgumentException("담당 멘티가 아닙니다.");
+        // }
 
         // 2️⃣ 멘티 정보
         User student = userRepository.findById(studentId)
@@ -64,21 +72,19 @@ public class MentorTaskService {
                             task.getTitle(),
                             task.getSubject(),
                             task.getSubject() != null ? task.getSubject().name() : null,
-                            task.getSolution() == null ? null :
-                                    new GoalResponse(
-                                            task.getSolution().getId(),
-                                            task.getSolution().getTitle()
-                                    ),
+                            task.getSolution() == null ? null
+                                    : new GoalResponse(
+                                    task.getSolution().getId(),
+                                    task.getSolution().getTitle()),
                             List.of(), // 🔥 TaskMaterial Repository 없으므로 비워둠
                             task.getStudyTime(),
+                            task.isUploadRequired(),
                             task.isMentorConfirmed(),
                             submission == null ? null : SubmissionResponse.of(submission),
-                            feedback == null ? null :
-                                    new FeedbackResponse(
-                                            feedback.getId(),
-                                            feedback.isImportant()
-                                    )
-                    );
+                            feedback == null ? null
+                                    : new FeedbackResponse(
+                                    feedback.getId(),
+                                    feedback.isImportant()));
                 })
                 .toList();
 
@@ -94,10 +100,9 @@ public class MentorTaskService {
     @Transactional
     public MentorTaskCreateResponse createStudentTask(
             Long studentId,
-            MentorTaskCreateRequest request
-    ) {
+            MentorTaskCreateRequest request) {
         // 1️⃣ 멘티 확인
-        User student = userRepository.findById(studentId)
+        userRepository.findById(studentId)
                 .orElseThrow(() -> new NoSuchElementException("멘티를 찾을 수 없습니다."));
 
         // 2️⃣ Solution 조회 (선택)
@@ -118,6 +123,7 @@ public class MentorTaskService {
         // 멘토가 준 할 일이므로
         task.setMentorAssigned(true);
         task.setMentorConfirmed(false);
+        task.setUploadRequired(true); // Mentor assigned tasks require upload by default
 
         // 목표(솔루션) 연결
         if (solution != null) {
@@ -133,13 +139,11 @@ public class MentorTaskService {
             materials = request.getMaterialIds().stream()
                     .map(fileId -> {
                         taskMaterialRepository.save(
-                                new TaskMaterial(task.getId(), fileId)
-                        );
+                                new TaskMaterial(task.getId(), fileId));
                         return new MaterialResponse(
                                 fileId,
                                 null,
-                                "/api/v1/files/" + fileId + "/download"
-                        );
+                                "/api/v1/files/" + fileId + "/download");
                     })
                     .toList();
         }
@@ -150,10 +154,8 @@ public class MentorTaskService {
                 task.getTitle(),
                 task.getCreatedAt(),
                 task.getSubject(),
-                solution == null ? null :
-                        new GoalResponse(solution.getId(), solution.getTitle()),
-                materials
-        );
+                solution == null ? null : new GoalResponse(solution.getId(), solution.getTitle()),
+                materials);
     }
 
     @Transactional
@@ -162,15 +164,15 @@ public class MentorTaskService {
             String title,
             LocalDate date,
             Long goalId,
-            List<MultipartFile> materials
-    ) {
+            List<MultipartFile> materials) {
 
-        Solution solution = goalId == null ? null :
-                solutionRepository.findById(goalId)
-                        .orElseThrow(() -> new NoSuchElementException("목표 없음"));
+        Solution solution = goalId == null ? null
+                : solutionRepository.findById(goalId)
+                .orElseThrow(() -> new NoSuchElementException("목표 없음"));
 
         Task task = new Task(studentId, title, date, null, studentId);
         task.setMentorAssigned(true);
+        task.setUploadRequired(true);
 
         if (solution != null) {
             task.setSolution(solution);
@@ -185,25 +187,18 @@ public class MentorTaskService {
             materialResponses = materials.stream()
                     .map(file -> {
                         try {
-//                            로컬 테스트용 파일 저장 코드
-//                            File saved = fileService.saveFile(
-//                                    file,
-//                                    File.FileCategory.MATERIAL,
-//                                    studentId
-//                            );
-
-                            /** s3 버킷 파일 저장 코드 * */
-                            FileUploadResponse fileUploadResponse = fileService.uploadFile(file, File.FileCategory.MATERIAL, studentId);
+                            FileUploadResponse saved = fileService.uploadFile(
+                                    file,
+                                    File.FileCategory.MATERIAL,
+                                    studentId);
 
                             taskMaterialRepository.save(
-                                    new TaskMaterial(task.getId(), fileUploadResponse.getId())
-                            );
+                                    new TaskMaterial(task.getId(), saved.getId()));
 
                             return new MaterialResponse(
-                                    fileUploadResponse.getId(),
-                                    fileUploadResponse.getFileName(),
-                                    "/api/v1/files/" + fileUploadResponse.getId() + "/download"
-                            );
+                                    saved.getId(),
+                                    saved.getFileName(),
+                                    "/api/v1/files/" + saved.getId() + "/download");
                         } catch (Exception e) {
                             throw new RuntimeException(e);
                         }
@@ -216,18 +211,15 @@ public class MentorTaskService {
                 task.getTitle(),
                 task.getCreatedAt(),
                 task.getSubject(),
-                solution == null ? null :
-                        new GoalResponse(solution.getId(), solution.getTitle()),
-                materialResponses
-        );
+                solution == null ? null : new GoalResponse(solution.getId(), solution.getTitle()),
+                materialResponses);
     }
 
     @Transactional
     public MentorTaskUpdateResponse updateStudentTask(
             Long studentId,
             Long taskId,
-            MentorTaskUpdateRequest request
-    ) {
+            MentorTaskUpdateRequest request) {
         // 1️⃣ 멘티 확인
         userRepository.findById(studentId)
                 .orElseThrow(() -> new NoSuchElementException("멘티를 찾을 수 없습니다."));
@@ -267,8 +259,7 @@ public class MentorTaskService {
                 task.getId(),
                 task.getTitle(),
                 task.getTaskDate(),
-                task.getUpdatedAt()
-        );
+                task.getUpdatedAt());
     }
 
     @Transactional
@@ -296,8 +287,8 @@ public class MentorTaskService {
     public MentorTaskConfirmResponse confirmTask(
             Long studentId,
             Long taskId,
-            MentorTaskConfirmRequest request
-    ) {
+            MentorTaskConfirmRequest request) {
+
         if (request.getConfirmed() == null) {
             throw new IllegalArgumentException("confirmed 값은 필수입니다.");
         }
@@ -315,7 +306,32 @@ public class MentorTaskService {
         if (request.getConfirmed()) {
             task.setMentorConfirmed(true);
             task.setConfirmedAt(LocalDateTime.now());
+
+            // 🚀 FCM 알림 전송 로직 추가
+            try {
+                Long menteeId = task.getMenteeId();
+                List<FcmToken> tokens = fcmTokenRepository.findAllByUserId(menteeId);
+
+                if (tokens != null && !tokens.isEmpty()) {
+                    for (FcmToken token : tokens) {
+                        fcmService.sendNotification(
+                                token.getToken(),
+                                "✅ 과제 확인 완료",
+                                "멘토님이 '" + task.getTitle() + "' 과제를 확인하셨어요! 고생 많으셨습니다. 😊",
+                                task.getId()
+                        );
+                    }
+                    log.info("멘티(ID: {})에게 과제 컨펌 알림 전송 완료", menteeId);
+                } else {
+                    log.warn("멘티(ID: {})의 FCM 토큰이 없어 알림을 전송하지 못했습니다.", menteeId);
+                }
+            } catch (Exception e) {
+                // 알림 실패가 DB 업데이트(Transaction)에 영향을 주지 않도록 예외 격리
+                log.error("과제 컨펌 알림 전송 중 오류 발생: {}", e.getMessage());
+            }
+
         } else {
+            // 컨펌 취소 시에는 보통 알림을 보내지 않거나, 필요에 따라 별도 메시지 구성 가능
             task.setMentorConfirmed(false);
             task.setConfirmedAt(null);
         }
@@ -323,9 +339,7 @@ public class MentorTaskService {
         return new MentorTaskConfirmResponse(
                 task.getId(),
                 task.isMentorConfirmed(),
-                task.getConfirmedAt()
-        );
+                task.getConfirmedAt());
     }
-
 
 }

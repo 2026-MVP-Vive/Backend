@@ -18,13 +18,18 @@ public class TaskResponse {
     private String goalTitle;
     private Integer studyTime;
     private boolean isCompleted;
+    private boolean isUploadRequired;
     private boolean isMentorAssigned;
     private boolean isMentorConfirmed;
+    private boolean isMenteeCompleted;
     private boolean hasSubmission;
     private boolean hasFeedback;
     private int materialCount;
 
     public static TaskResponse of(Task task, boolean hasSubmission, boolean hasFeedback, int materialCount) {
+        boolean isCompleted = hasSubmission
+                || (!task.isUploadRequired() && task.getStudyTime() != null && task.getStudyTime() > 0);
+
         return TaskResponse.builder()
                 .id(task.getId())
                 .title(task.getTitle())
@@ -33,9 +38,11 @@ public class TaskResponse {
                 .goalId(task.getSolution() != null ? task.getSolution().getId() : null)
                 .goalTitle(task.getSolution() != null ? task.getSolution().getTitle() : null)
                 .studyTime(task.getStudyTime())
-                .isCompleted(hasSubmission) // As per my assumption in plan
+                .isCompleted(isCompleted)
+                .isUploadRequired(task.isUploadRequired())
                 .isMentorAssigned(task.isMentorAssigned())
                 .isMentorConfirmed(task.isMentorConfirmed())
+                .isMenteeCompleted(task.isMenteeCompleted())
                 .hasSubmission(hasSubmission)
                 .hasFeedback(hasFeedback)
                 .materialCount(materialCount)

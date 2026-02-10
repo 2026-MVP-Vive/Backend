@@ -1,4 +1,3 @@
-
 package com.seolstudy.seolstudy_backend.mentee.service;
 
 import com.seolstudy.seolstudy_backend.global.file.domain.File;
@@ -166,8 +165,10 @@ public class TaskService {
                 .subjectName(task.getSubject() != null ? task.getSubject().getDescription() : null)
                 .goal(goalDto)
                 .studyTime(task.getStudyTime())
+                .isUploadRequired(task.isUploadRequired())
                 .isMentorAssigned(task.isMentorAssigned())
                 .isMentorConfirmed(task.isMentorConfirmed())
+                .isMenteeCompleted(task.isMenteeCompleted())
                 .materials(fileDtos)
                 .submission(submissionDto)
                 .feedback(feedbackDto)
@@ -221,6 +222,34 @@ public class TaskService {
                 .year(year)
                 .month(month)
                 .plans(plans)
+                .build();
+    }
+
+    @Transactional
+    public TaskCompleteResponse toggleTaskCompletion(Long menteeId, Long taskId, Boolean completed) {
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new RuntimeException("Task not found"));
+
+        if (!task.getMenteeId().equals(menteeId)) {
+            throw new RuntimeException("Access denied");
+        }
+
+        if (completed == null) {
+            throw new IllegalArgumentException("completed 값은 필수입니다.");
+        }
+
+        if (completed) {
+            task.setMenteeCompleted(true);
+            task.setMenteeCompletedAt(java.time.LocalDateTime.now());
+        } else {
+            task.setMenteeCompleted(false);
+            task.setMenteeCompletedAt(null);
+        }
+
+        return TaskCompleteResponse.builder()
+                .id(task.getId())
+                .isMenteeCompleted(task.isMenteeCompleted())
+                .menteeCompletedAt(task.getMenteeCompletedAt())
                 .build();
     }
 }

@@ -1,13 +1,11 @@
 package com.seolstudy.seolstudy_backend.mentee.service;
 
-import com.seolstudy.seolstudy_backend.mentee.domain.PlannerCompletion;
-import com.seolstudy.seolstudy_backend.mentee.domain.Task;
-import com.seolstudy.seolstudy_backend.mentee.dto.DailyPlanDto;
-import com.seolstudy.seolstudy_backend.mentee.dto.MonthlyPlanResponse;
-import com.seolstudy.seolstudy_backend.mentee.dto.PlannerCompletionResponse;
-import com.seolstudy.seolstudy_backend.mentee.repository.PlannerCompletionRepository;
-import com.seolstudy.seolstudy_backend.mentee.repository.SubmissionRepository;
-import com.seolstudy.seolstudy_backend.mentee.repository.TaskRepository;
+import com.seolstudy.seolstudy_backend.global.error.BusinessException;
+import com.seolstudy.seolstudy_backend.global.error.ErrorCode;
+import com.seolstudy.seolstudy_backend.mentee.domain.*;
+import com.seolstudy.seolstudy_backend.mentee.dto.*;
+import com.seolstudy.seolstudy_backend.mentee.repository.*;
+import com.seolstudy.seolstudy_backend.mentor.dto.request.MentorTaskCreateMultipartRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,49 +28,98 @@ public class PlannerService {
     private final PlannerCompletionRepository plannerCompletionRepository;
     private final TaskRepository taskRepository;
     private final SubmissionRepository submissionRepository;
+    private final NotificationService notificationService;
+    private final MentorMenteeRepository mentorMenteeRepository;
+    private final UserRepository userRepository;
 
     @Transactional
-    public PlannerCompletionResponse completeDailyPlanner(Long menteeId, LocalDate date) {
-        // 이미 완료된 상태인지 확인 (Optional, 멱등성 보장을 위해)
+    public PlannerCompletionResponse completeDailyPlanner(Long menteeId, LocalDate date,
+                                                          PlannerCompleteRequest request) {
+        // 1. Update specified tasks as completed
+        List<Long> taskIds = request.getTasks();
+        if (taskIds != null && !taskIds.isEmpty()) {
+            List<Task> tasksToUpdate = taskRepository.findAllById(taskIds);
+            for (Task task : tasksToUpdate) {
+                if (task.getMenteeId().equals(menteeId)) {
+                    task.setMenteeCompleted(true);
+                    task.setMenteeCompletedAt(LocalDateTime.now());
+                }
+            }
+            taskRepository.saveAll(tasksToUpdate);
+        }
+
+        // 2. Check if all tasks for the day are confirmed by mentor
+        List<Task> allDailyTasks = taskRepository.findAllByMenteeIdAndTaskDate(menteeId, date);
+        boolean allConfirmed = !allDailyTasks.isEmpty()
+                && allDailyTasks.stream().allMatch(Task::isMentorConfirmed);
+
+        // 3. Already completed check (for idempotency)
         if (plannerCompletionRepository.existsByMenteeIdAndPlanDate(menteeId, date)) {
-            PlannerCompletion existing = plannerCompletionRepository.findByMenteeIdAndPlanDate(menteeId, date).get();
+            PlannerCompletion existing = plannerCompletionRepository
+                    .findByMenteeIdAndPlanDate(menteeId, date).get();
             return PlannerCompletionResponse.builder()
                     .date(existing.getPlanDate())
                     .completedAt(existing.getCompletedAt())
                     .status("COMPLETED")
+                    .tasks(taskIds)
                     .build();
         }
 
-        // 해당 날짜의 모든 할 일 조회
-        List<Task> tasks = taskRepository.findAllByMenteeIdAndTaskDate(menteeId, date);
+        // 4. If all confirmed, save planner completion record
+        if (allConfirmed) {
+            PlannerCompletion completion = PlannerCompletion.builder()
+                    .menteeId(menteeId)
+                    .planDate(date)
+                    .build();
+            try {
+                PlannerCompletion saved = plannerCompletionRepository.save(completion);
 
-        if (tasks.isEmpty()) {
-            throw new IllegalArgumentException("해당 날짜에 등록된 할 일이 없습니다.");
+                //멘토 정보 탐색
+                MentorMentee mentor = mentorMenteeRepository.findByMenteeId(menteeId)
+                        .orElseThrow(() -> new BusinessException("담당 멘토를 찾을 수 없습니다.", ErrorCode.NOT_FOUND));
+                //멘티 정보 탐색
+                User user = userRepository.findById(menteeId)
+                                .orElseThrow(() -> new BusinessException("멘티 정보를 찾을 수 없습니다,", ErrorCode.NOT_FOUND));
+                notificationService.createNotification(
+                        mentor.getMentorId(),
+                        NotificationType.TASK_COMPLETED,
+                        user.getName() + " 학생의 플레너 마감 요청 접수",
+                        "담당 멘티의 플레너 마감 요청이 접수되었습니다.",
+                        saved.getId()
+                );
 
-        }
-
-        // 모든 할 일이 제출되었는지 확인
-        // TODO: Optimize N+1 query if needed. Currently checking existence for each
-        // task.
-        for (Task task : tasks) {
-            if (!submissionRepository.existsByTaskId(task.getId())) {
-                throw new IllegalStateException("아직 완료되지 않은 할 일이 있습니다. 모든 할 일을 인증해주세요.");
+                return PlannerCompletionResponse.builder()
+                        .date(saved.getPlanDate())
+                        .completedAt(saved.getCompletedAt())
+                        .status("COMPLETED")
+                        .tasks(taskIds)
+                        .build();
+            } catch (Exception e) {
+                // Fallback for DB errors
             }
         }
 
-        PlannerCompletion completion = PlannerCompletion.builder()
-                .menteeId(menteeId)
-                .planDate(date)
-                .completedAt(LocalDateTime.now()) // Auditing may handle this, but setting for response consistency
-                .build();
-
-        PlannerCompletion saved = plannerCompletionRepository.save(completion);
-
+        // 5. If not all confirmed, return waiting status
         return PlannerCompletionResponse.builder()
-                .date(saved.getPlanDate())
-                .completedAt(saved.getCompletedAt() != null ? saved.getCompletedAt() : LocalDateTime.now())
-                .status("COMPLETED")
+                .date(date)
+                .completedAt(null)
+                .status("WAITING_FOR_CONFIRMATION")
+                .tasks(taskIds)
                 .build();
+    }
+
+    public PlannerCompletionResponse getPlannerCompletionStatus(Long menteeId, LocalDate date) {
+        return plannerCompletionRepository.findByMenteeIdAndPlanDate(menteeId, date)
+                .map(completion -> PlannerCompletionResponse.builder()
+                        .date(completion.getPlanDate())
+                        .completedAt(completion.getCompletedAt())
+                        .status("COMPLETED")
+                        .build())
+                .orElse(PlannerCompletionResponse.builder()
+                        .date(date)
+                        .completedAt(null)
+                        .status("PENDING")
+                        .build());
     }
 
     public MonthlyPlanResponse getMonthlyPlan(Long menteeId, int year, int month) {

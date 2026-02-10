@@ -1,10 +1,7 @@
     package com.seolstudy.seolstudy_backend.global.fcm.domain;
 
     import jakarta.persistence.*;
-    import lombok.AccessLevel;
-    import lombok.Builder;
-    import lombok.Getter;
-    import lombok.NoArgsConstructor;
+    import lombok.*;
 
     import java.time.LocalDateTime;
 
@@ -12,6 +9,7 @@
     @Table(name = "fcm_tokens")
     @NoArgsConstructor(access = AccessLevel.PROTECTED)
     @Getter
+    @Setter
     public class FcmToken {
 
         @Id

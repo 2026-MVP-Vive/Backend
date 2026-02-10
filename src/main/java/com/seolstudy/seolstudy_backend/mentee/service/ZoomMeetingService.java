@@ -2,12 +2,12 @@ package com.seolstudy.seolstudy_backend.mentee.service;
 
 import com.seolstudy.seolstudy_backend.global.error.BusinessException;
 import com.seolstudy.seolstudy_backend.global.error.ErrorCode;
-import com.seolstudy.seolstudy_backend.mentee.domain.MentorMentee;
-import com.seolstudy.seolstudy_backend.mentee.domain.ZoomMeeting;
-import com.seolstudy.seolstudy_backend.mentee.domain.ZoomMeetingStatus;
+import com.seolstudy.seolstudy_backend.mentee.domain.*;
 import com.seolstudy.seolstudy_backend.mentee.dto.ZoomMeetingRequest;
 import com.seolstudy.seolstudy_backend.mentee.dto.ZoomMeetingResponse;
 import com.seolstudy.seolstudy_backend.mentee.repository.MentorMenteeRepository;
+import com.seolstudy.seolstudy_backend.mentee.repository.NotificationRepository;
+import com.seolstudy.seolstudy_backend.mentee.repository.UserRepository;
 import com.seolstudy.seolstudy_backend.mentee.repository.ZoomMeetingRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -23,8 +23,10 @@ import java.util.List;
 public class ZoomMeetingService {
 
     private final ZoomMeetingRepository zoomMeetingRepository;
-    private final NotificationService notificationService;
     private final MentorMenteeRepository mentorMenteeRepository;
+    private final NotificationRepository notificationRepository;
+    private final NotificationService notificationService;
+    private final UserRepository userRepository;
 
     /**
      * 멘티가 멘토에게 Zoom 미팅을 신청합니다.
@@ -39,17 +41,16 @@ public class ZoomMeetingService {
                 .preferredDate(preferredDate)
                 .preferredTime(preferredTime)
                 .build();
-
+        User user = userRepository.findById(menteeId)
+                .orElseThrow(() -> new BusinessException("멘티를 찾을 수 없습니다.", ErrorCode.NOT_FOUND));
         ZoomMeeting savedMeeting = zoomMeetingRepository.save(zoomMeeting);
         MentorMentee mentor_mentee = mentorMenteeRepository.findByMenteeId(menteeId)
                 .orElseThrow(() -> new BusinessException("담당 멘토가 존재하지 않습니다.", ErrorCode.NOT_FOUND));
-
-        //Notification Server에 저장
         notificationService.createNotification(
-            mentor_mentee.getMentorId(),
-                NotificationType.ZOOM_REQUEST,
-                "Zoom 요청 접수",
-                "Zoom 요청이 접수되었습니다, 확인해 주세요.",
+                mentor_mentee.getMentorId(),
+                NotificationType.ZOOM_REQUESTED,
+                user.getName() + " 학생의 Zoom 요청 접수",
+                "담당 멘티 학생의 Zoom 요청이 접수되었습니다.",
                 zoomMeeting.getId()
         );
 

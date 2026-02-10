@@ -1,12 +1,11 @@
 package com.seolstudy.seolstudy_backend.mentor.service;
 
-import com.seolstudy.seolstudy_backend.global.fcm.controller.FcmTokenController;
 import com.seolstudy.seolstudy_backend.global.fcm.domain.FcmToken;
 import com.seolstudy.seolstudy_backend.global.fcm.repository.FcmTokenRepository;
 import com.seolstudy.seolstudy_backend.global.fcm.service.FcmService;
 import com.seolstudy.seolstudy_backend.global.file.domain.File;
-import com.seolstudy.seolstudy_backend.global.file.dto.FileUploadResponse;
 import com.seolstudy.seolstudy_backend.global.file.service.FileService;
+import com.seolstudy.seolstudy_backend.global.util.SecurityUtil;
 import com.seolstudy.seolstudy_backend.mentee.domain.*;
 import com.seolstudy.seolstudy_backend.mentee.dto.SubmissionResponse;
 import com.seolstudy.seolstudy_backend.mentee.repository.*;
@@ -15,7 +14,6 @@ import com.seolstudy.seolstudy_backend.mentor.dto.request.MentorTaskCreateReques
 import com.seolstudy.seolstudy_backend.mentor.dto.request.MentorTaskUpdateRequest;
 import com.seolstudy.seolstudy_backend.mentor.dto.response.*;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,7 +28,6 @@ import org.springframework.web.multipart.MultipartFile;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-@Slf4j
 public class MentorTaskService {
 
     private final UserRepository userRepository;
@@ -39,9 +36,11 @@ public class MentorTaskService {
     private final FeedbackRepository feedbackRepository;
     private final SolutionRepository solutionRepository;
     private final TaskMaterialRepository taskMaterialRepository;
+    private final PlannerCompletionRepository plannerCompletionRepository;
     private final FileService fileService;
-    private final FcmService fcmService;
     private final FcmTokenRepository fcmTokenRepository;
+    private final FcmService fcmService;
+    private final SecurityUtil securityUtil;
 
     public MentorStudentTaskResponse getStudentTasks(Long studentId, LocalDate date) {
 
@@ -67,31 +66,39 @@ public class MentorTaskService {
                     Submission submission = submissionRepository.findByTaskId(task.getId());
                     Feedback feedback = feedbackRepository.findByTaskId(task.getId());
 
-                    return new TaskResponse(
-                            task.getId(),
-                            task.getTitle(),
-                            task.getSubject(),
-                            task.getSubject() != null ? task.getSubject().name() : null,
-                            task.getSolution() == null ? null
+                    return TaskResponse.builder()
+                            .id(task.getId())
+                            .title(task.getTitle())
+                            .subject(task.getSubject())
+                            .subjectName(task.getSubject() != null
+                                    ? task.getSubject().getDescription()
+                                    : null)
+                            .goal(task.getSolution() == null ? null
                                     : new GoalResponse(
                                     task.getSolution().getId(),
-                                    task.getSolution().getTitle()),
-                            List.of(), // 🔥 TaskMaterial Repository 없으므로 비워둠
-                            task.getStudyTime(),
-                            task.isUploadRequired(),
-                            task.isMentorConfirmed(),
-                            submission == null ? null : SubmissionResponse.of(submission),
-                            feedback == null ? null
+                                    task.getSolution().getTitle()))
+                            .materials(List.of())
+                            .studyTime(task.getStudyTime())
+                            .isUploadRequired(task.isUploadRequired())
+                            .isMentorConfirmed(task.isMentorConfirmed())
+                            .isChecked(task.isMenteeCompleted())
+                            .submission(submission == null ? null
+                                    : SubmissionResponse.of(submission))
+                            .feedback(feedback == null ? null
                                     : new FeedbackResponse(
                                     feedback.getId(),
-                                    feedback.isImportant()));
+                                    feedback.isImportant()))
+                            .build();
                 })
                 .toList();
+
+        boolean isCompleted = plannerCompletionRepository.existsByMenteeIdAndPlanDate(studentId, date);
 
         return new MentorStudentTaskResponse(
                 studentId,
                 student.getName(),
                 date,
+                isCompleted,
                 taskResponses,
                 List.of() // comments 없음
         );
@@ -118,8 +125,9 @@ public class MentorTaskService {
                 request.getTitle(),
                 request.getDate(),
                 null,
-                studentId // ⚠️ 임시 (JWT 붙이면 mentorId로 교체)
+                securityUtil.getCurrentUserId()
         );
+
         // 멘토가 준 할 일이므로
         task.setMentorAssigned(true);
         task.setMentorConfirmed(false);
@@ -146,6 +154,17 @@ public class MentorTaskService {
                                 "/api/v1/files/" + fileId + "/download");
                     })
                     .toList();
+        }
+
+        List<FcmToken> tokens = fcmTokenRepository.findAllByUserId(studentId);
+        if (!tokens.isEmpty()) {
+            String title = "[설스터디] 확인 필수! 새로운 과제가 추가됐어요 \uD83D\uDCC5";
+            String body = "멘토님이 새로운 과제를 등록했어요. 내용을 확인하고 기한 내에 완료해 보세요! \uD83D\uDCAA";
+
+            // 비동기 처리가 권장되지만, 우선은 리스트로 관리하여 전송
+            tokens.forEach(token ->
+                    fcmService.sendNotification(token.getToken(), title, body, task.getId())
+            );
         }
 
         // 5️⃣ 응답
@@ -187,7 +206,7 @@ public class MentorTaskService {
             materialResponses = materials.stream()
                     .map(file -> {
                         try {
-                            FileUploadResponse saved = fileService.uploadFile(
+                            File saved = fileService.saveFile(
                                     file,
                                     File.FileCategory.MATERIAL,
                                     studentId);
@@ -197,13 +216,24 @@ public class MentorTaskService {
 
                             return new MaterialResponse(
                                     saved.getId(),
-                                    saved.getFileName(),
+                                    saved.getOriginalName(),
                                     "/api/v1/files/" + saved.getId() + "/download");
-                        } catch (Exception e) {
+                        } catch (IOException e) {
                             throw new RuntimeException(e);
                         }
                     })
                     .toList();
+        }
+
+        List<FcmToken> tokens = fcmTokenRepository.findAllByUserId(studentId);
+        if (!tokens.isEmpty()) {
+            String fcmTitle = "[설스터디] 확인 필수! 새로운 과제가 추가됐어요 \uD83D\uDCC5";
+            String body = "멘토님이 새로운 과제를 등록했어요. 내용을 확인하고 기한 내에 완료해 보세요! \uD83D\uDCAA";
+
+            // 비동기 처리가 권장되지만, 우선은 리스트로 관리하여 전송
+            tokens.forEach(token ->
+                    fcmService.sendNotification(token.getToken(), title, body, task.getId())
+            );
         }
 
         return new MentorTaskCreateResponse(
@@ -254,6 +284,18 @@ public class MentorTaskService {
 
         taskRepository.save(task);
 
+        List<FcmToken> tokens = fcmTokenRepository.findAllByUserId(studentId);
+        if (!tokens.isEmpty()) {
+            String title = "[설스터디] 알림: 과제 내용이 수정되었습니다 ✍\uFE0F";
+            String body = String.format("멘토님이 배정하신 '%s' 과제의 상세 내용을 수정하셨어요. 변경된 내용을 지금 바로 확인해 보세요!",
+                    task.getTitle() != null ? task.getTitle() : "알 수 없는");
+
+            // 비동기 처리가 권장되지만, 우선은 리스트로 관리하여 전송
+            tokens.forEach(token ->
+                    fcmService.sendNotification(token.getToken(), title, body, task.getId())
+            );
+        }
+
         // 7️⃣ 응답
         return new MentorTaskUpdateResponse(
                 task.getId(),
@@ -281,6 +323,18 @@ public class MentorTaskService {
 
         // 4️⃣ Task 삭제
         taskRepository.delete(task);
+
+        List<FcmToken> tokens = fcmTokenRepository.findAllByUserId(studentId);
+        if (!tokens.isEmpty()) {
+            String title = "[설스터디] 알림: 과제 배정이 취소되었습니다 \\uD83D\\uDCC1";
+            String body = String.format("멘토님이 배정하셨던 '%s' 과제가 삭제되었습니다. 학습 일정에 참고해 주세요!",
+                    task.getTitle() != null ? task.getTitle() : "알 수 없는");
+
+            // 비동기 처리가 권장되지만, 우선은 리스트로 관리하여 전송
+            tokens.forEach(token ->
+                    fcmService.sendNotification(token.getToken(), title, body, null)
+            );
+        }
     }
 
     @Transactional
@@ -288,7 +342,6 @@ public class MentorTaskService {
             Long studentId,
             Long taskId,
             MentorTaskConfirmRequest request) {
-
         if (request.getConfirmed() == null) {
             throw new IllegalArgumentException("confirmed 값은 필수입니다.");
         }
@@ -307,33 +360,22 @@ public class MentorTaskService {
             task.setMentorConfirmed(true);
             task.setConfirmedAt(LocalDateTime.now());
 
-            // 🚀 FCM 알림 전송 로직 추가
-            try {
-                Long menteeId = task.getMenteeId();
-                List<FcmToken> tokens = fcmTokenRepository.findAllByUserId(menteeId);
-
-                if (tokens != null && !tokens.isEmpty()) {
-                    for (FcmToken token : tokens) {
-                        fcmService.sendNotification(
-                                token.getToken(),
-                                "✅ 과제 확인 완료",
-                                "멘토님이 '" + task.getTitle() + "' 과제를 확인하셨어요! 고생 많으셨습니다. 😊",
-                                task.getId()
-                        );
-                    }
-                    log.info("멘티(ID: {})에게 과제 컨펌 알림 전송 완료", menteeId);
-                } else {
-                    log.warn("멘티(ID: {})의 FCM 토큰이 없어 알림을 전송하지 못했습니다.", menteeId);
-                }
-            } catch (Exception e) {
-                // 알림 실패가 DB 업데이트(Transaction)에 영향을 주지 않도록 예외 격리
-                log.error("과제 컨펌 알림 전송 중 오류 발생: {}", e.getMessage());
-            }
-
+            // 4. 모든 할 일이 완료되었는지 확인 후 PlannerCompletion 저장
+            checkAndCompletePlanner(studentId, task.getTaskDate());
         } else {
-            // 컨펌 취소 시에는 보통 알림을 보내지 않거나, 필요에 따라 별도 메시지 구성 가능
             task.setMentorConfirmed(false);
             task.setConfirmedAt(null);
+        }
+
+        List<FcmToken> tokens = fcmTokenRepository.findAllByUserId(studentId);
+        if (!tokens.isEmpty()) {
+            String title = "[설스터디] 과제 컨펌 완료! 한 걸음 더 성장했어요 \uD83D\uDCC8";
+            String body = "제출한 과제를 멘토님이 확인하셨어요, 지금 확인하러 가기! \uD83C\uDFC3";
+
+            // 비동기 처리가 권장되지만, 우선은 리스트로 관리하여 전송
+            tokens.forEach(token ->
+                    fcmService.sendNotification(token.getToken(), title, body, task.getId())
+            );
         }
 
         return new MentorTaskConfirmResponse(
@@ -342,4 +384,23 @@ public class MentorTaskService {
                 task.getConfirmedAt());
     }
 
+    private void checkAndCompletePlanner(Long menteeId, LocalDate date) {
+        List<Task> allTasks = taskRepository.findAllByMenteeIdAndTaskDate(menteeId, date);
+
+        if (allTasks.isEmpty()) {
+            return;
+        }
+
+        boolean allConfirmed = allTasks.stream().allMatch(Task::isMentorConfirmed);
+
+        if (allConfirmed) {
+            if (!plannerCompletionRepository.existsByMenteeIdAndPlanDate(menteeId, date)) {
+                PlannerCompletion completion = PlannerCompletion.builder()
+                        .menteeId(menteeId)
+                        .planDate(date)
+                        .build();
+                plannerCompletionRepository.save(completion);
+            }
+        }
+    }
 }

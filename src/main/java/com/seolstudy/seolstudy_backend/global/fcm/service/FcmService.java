@@ -11,6 +11,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Map;
+
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -20,27 +22,23 @@ public class FcmService {
     /** 현재 클라이언트의 토큰이 DB에 저장된 토큰과 다르면 갱신, 없으면 토큰값을 저장 */
     @Transactional
     public void saveOrUpdateToken(Long userId, String tokenValue) {
-        // 1. 해당 토큰이 이미 DB에 있는지 확인
+        // 1) 이 유저의 기존 토큰 제거
+        fcmTokenRepository.deleteByUserId(userId);
+
+        // 2) 이 기기의 기존 연결 제거
         fcmTokenRepository.findByToken(tokenValue)
-                .ifPresentOrElse(
-                        existingToken -> {
-                            // 2-1. 토큰이 이미 있다면, 주인(userId)이 바뀌었는지 체크 (기기 공유 케이스)
-                            if (!existingToken.getUserId().equals(userId)) {
-                                // 다른 사람이 쓰던 기기라면 기존 연결 끊고 새 주인으로 변경
-                                // (보통은 기존 토큰 삭제 후 새로 생성하거나 업데이트)
-                                fcmTokenRepository.delete(existingToken);
-                                fcmTokenRepository.save(new FcmToken(userId, tokenValue));
-                            } else {
-                                // 주인도 같다면 마지막 사용 시간만 갱신
-                                existingToken.updateLastUsed();
-                            }
-                        },
-                        () -> {
-                            // 2-2. 아예 처음 보는 토큰이라면 신규 저장
-                            fcmTokenRepository.save(new FcmToken(userId, tokenValue));
-                        }
-                );
+                .ifPresent(existing -> fcmTokenRepository.delete(existing));
+
+        // ★ 중요: 위 삭제 쿼리들을 DB에 즉시 반영
+        fcmTokenRepository.flush();
+
+        // 3) 새 토큰 저장
+        fcmTokenRepository.save(FcmToken.builder()
+                .userId(userId)
+                .token(tokenValue)
+                .build());
     }
+
 
     /** 알림 전송 서비스 */
     @Transactional
@@ -48,15 +46,15 @@ public class FcmService {
         Message message = Message.builder()
                 .setToken(token)
                 .setNotification(Notification.builder()
-                        .setTitle("[설스터디]" + title)
+                        .setTitle(title)
                         .setBody(body)
                         .build())
-                .putData("taskId", String.valueOf(taskId))
+                .putAllData(taskId != null ? Map.of("taskId", String.valueOf(taskId)) : Map.of())
                 .setWebpushConfig(WebpushConfig.builder()
                         .putHeader("Urgency", "high") //  'Urgency' 헤더를 추가해서 기기를 강제로 깨웁니다
                         .setFcmOptions(WebpushFcmOptions.withLink("https://seolstudy.duckdns.org"))
                         .setNotification(WebpushNotification.builder() // 웹 전용 노티 설정 보강
-                                .setTitle("[설스터디] " + title)
+                                .setTitle(title)
                                 .setBody(body)
                                 .setIcon("https://cdn-icons-png.flaticon.com/512/3119/3119338.png") // 아이콘이 없으면 알림이 안 뜰 때가 있음
                                 .setVibrate(new int[]{200, 100, 200}) // 진동 설정 (안드로이드 웹앱용)

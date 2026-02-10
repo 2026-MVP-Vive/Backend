@@ -83,7 +83,7 @@ public class MentorFeedbackService {
                 for (FcmToken token : tokens) {
                     fcmService.sendNotification(
                             token.getToken(),
-                            "✅ 피드백 등록 완료",
+                            "[설스터디] ✅ 피드백 등록 완료",
                             "멘토님으로부터 새로운 피드백이 도착했어요! 지금 바로 확인해 보세요. 📝",
                             task.getId()
                     );

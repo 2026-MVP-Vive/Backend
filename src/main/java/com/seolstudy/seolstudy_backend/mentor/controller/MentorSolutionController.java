@@ -93,4 +93,7 @@ public class MentorSolutionController {
         mentorSolutionService.deleteSolution(studentId, solutionId);
         return ApiResponse.success("솔루션이 삭제되었습니다.");
     }
+
+
+
 }

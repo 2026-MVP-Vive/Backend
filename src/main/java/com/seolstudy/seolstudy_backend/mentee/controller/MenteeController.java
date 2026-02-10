@@ -130,9 +130,11 @@ public class MenteeController {
     }
 
     @GetMapping("/feedbacks/yesterday")
-    public ResponseEntity<Map<String, Object>> getYesterdayFeedbacks() {
+    public ResponseEntity<Map<String, Object>> getYesterdayFeedbacks(
+            @RequestParam(value = "date", required = false) String dateStr) {
         Long menteeId = securityUtil.getCurrentUserId();
-        YesterdayFeedbackResponse response = menteeFeedbackService.getYesterdayFeedbacks(menteeId);
+        LocalDate baseDate = (dateStr != null) ? LocalDate.parse(dateStr) : LocalDate.now();
+        YesterdayFeedbackResponse response = menteeFeedbackService.getYesterdayFeedbacks(menteeId, baseDate);
 
         Map<String, Object> result = new HashMap<>();
         result.put("success", true);

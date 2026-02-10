@@ -72,8 +72,8 @@ public class MenteeFeedbackService {
                 .build();
     }
 
-    public YesterdayFeedbackResponse getYesterdayFeedbacks(Long menteeId) {
-        LocalDate yesterday = LocalDate.now().minusDays(1);
+    public YesterdayFeedbackResponse getYesterdayFeedbacks(Long menteeId, LocalDate baseDate) {
+        LocalDate yesterday = baseDate.minusDays(1);
 
         // 1. Get tasks for yesterday
         List<Task> tasks = taskRepository.findAllByMenteeIdAndTaskDate(menteeId, yesterday);

@@ -186,7 +186,9 @@ public class MenteeApiIntegrationTest {
     @WithMockUser(username = "mentee01", roles = "MENTEE")
     @DisplayName("3.6 어제자 피드백 목록 조회")
     void getYesterdayFeedbacks() throws Exception {
-        mockMvc.perform(get("/api/v1/mentee/feedbacks/yesterday"))
+        String today = LocalDate.now().toString();
+        mockMvc.perform(get("/api/v1/mentee/feedbacks/yesterday")
+                .param("date", today))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true));

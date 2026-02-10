@@ -81,6 +81,7 @@ public class MentorTaskService {
                                                                         : new FeedbackResponse(
                                                                                         feedback.getId(),
                                                                                         feedback.isImportant()))
+                                                        .hasFeedback(feedback != null)
                                                         .build();
                                 })
                                 .toList();

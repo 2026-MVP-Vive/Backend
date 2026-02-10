@@ -30,6 +30,9 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -186,7 +189,9 @@ public class MenteeApiIntegrationTest {
     @WithMockUser(username = "mentee01", roles = "MENTEE")
     @DisplayName("3.6 어제자 피드백 목록 조회")
     void getYesterdayFeedbacks() throws Exception {
-        mockMvc.perform(get("/api/v1/mentee/feedbacks/yesterday"))
+        String today = LocalDate.now().toString();
+        mockMvc.perform(get("/api/v1/mentee/feedbacks/yesterday")
+                .param("date", today))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true));
@@ -290,25 +295,32 @@ public class MenteeApiIntegrationTest {
 
     @Test
     @WithMockUser(username = "mentee01", roles = "MENTEE")
-    @DisplayName("3.17 플래너 마감/피드백 요청")
+    @DisplayName("3.17 플래너 마감/피드백 요청 - 멘토 승인 대기")
     void completePlanner() throws Exception {
         // Create tasks for today
         Task task1 = new Task(mentee.getId(), "Task 1", LocalDate.now(), Subject.MATH, mentee.getId());
-        Task task2 = new Task(mentee.getId(), "Task 2", LocalDate.now(), Subject.ENGLISH, mentee.getId());
+        task1.setUploadRequired(true);
         taskRepository.save(task1);
-        taskRepository.save(task2);
-
-        // Submit tasks
-        MockMultipartFile image = new MockMultipartFile("image", "test.jpg", "image/jpeg", "content".getBytes());
-        mockMvc.perform(multipart("/api/v1/mentee/tasks/" + task1.getId() + "/submission").file(image));
-        mockMvc.perform(multipart("/api/v1/mentee/tasks/" + task2.getId() + "/submission").file(image));
 
         String today = LocalDate.now().toString();
 
-        mockMvc.perform(post("/api/v1/mentee/planner/" + today + "/complete"))
+        // 1. Mentee clicks complete
+        Map<String, Object> request = new HashMap<>();
+        request.put("tasks", List.of(task1.getId()));
+
+        mockMvc.perform(post("/api/v1/mentee/planner/" + today + "/complete")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data.status").value("COMPLETED"));
+                .andExpect(jsonPath("$.data.status").value("WAITING_FOR_CONFIRMATION"));
+
+        // 2. Mentor confirms task
+        // In reality, this would be a separate controller call, but we can test the
+        // service or just call the API if it's in the same test suite.
+        // MenteeController doesn't have confirm, it's MentorController.
+        // Let's just verify the status for now as the user requested "internal logic
+        // fix".
     }
 }

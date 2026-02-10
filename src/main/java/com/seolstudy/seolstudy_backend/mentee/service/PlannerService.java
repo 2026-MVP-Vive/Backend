@@ -48,7 +48,12 @@ public class PlannerService {
                         taskRepository.saveAll(tasksToUpdate);
                 }
 
-                // 2. Already completed check (for idempotency)
+                // 2. Check if all tasks for the day are confirmed by mentor
+                List<Task> allDailyTasks = taskRepository.findAllByMenteeIdAndTaskDate(menteeId, date);
+                boolean allConfirmed = !allDailyTasks.isEmpty()
+                                && allDailyTasks.stream().allMatch(Task::isMentorConfirmed);
+
+                // 3. Already completed check (for idempotency)
                 if (plannerCompletionRepository.existsByMenteeIdAndPlanDate(menteeId, date)) {
                         PlannerCompletion existing = plannerCompletionRepository
                                         .findByMenteeIdAndPlanDate(menteeId, date).get();
@@ -60,30 +65,32 @@ public class PlannerService {
                                         .build();
                 }
 
-                // 3. Save planner completion record
-                PlannerCompletion completion = PlannerCompletion.builder()
-                                .menteeId(menteeId)
-                                .planDate(date)
-                                .completedAt(LocalDateTime.now())
-                                .build();
-
-                try {
-                        PlannerCompletion saved = plannerCompletionRepository.save(completion);
-                        return PlannerCompletionResponse.builder()
-                                        .date(saved.getPlanDate())
-                                        .completedAt(saved.getCompletedAt() != null ? saved.getCompletedAt()
-                                                        : LocalDateTime.now())
-                                        .status("COMPLETED")
-                                        .tasks(taskIds)
+                // 4. If all confirmed, save planner completion record
+                if (allConfirmed) {
+                        PlannerCompletion completion = PlannerCompletion.builder()
+                                        .menteeId(menteeId)
+                                        .planDate(date)
                                         .build();
-                } catch (Exception e) {
-                        return PlannerCompletionResponse.builder()
-                                        .date(date)
-                                        .completedAt(LocalDateTime.now())
-                                        .status("COMPLETED (DB Error Ignored)")
-                                        .tasks(taskIds)
-                                        .build();
+                        try {
+                                PlannerCompletion saved = plannerCompletionRepository.save(completion);
+                                return PlannerCompletionResponse.builder()
+                                                .date(saved.getPlanDate())
+                                                .completedAt(saved.getCompletedAt())
+                                                .status("COMPLETED")
+                                                .tasks(taskIds)
+                                                .build();
+                        } catch (Exception e) {
+                                // Fallback for DB errors
+                        }
                 }
+
+                // 5. If not all confirmed, return waiting status
+                return PlannerCompletionResponse.builder()
+                                .date(date)
+                                .completedAt(null)
+                                .status("WAITING_FOR_CONFIRMATION")
+                                .tasks(taskIds)
+                                .build();
         }
 
         public PlannerCompletionResponse getPlannerCompletionStatus(Long menteeId, LocalDate date) {

@@ -305,6 +305,9 @@ public class MentorTaskService {
                 if (request.getConfirmed()) {
                         task.setMentorConfirmed(true);
                         task.setConfirmedAt(LocalDateTime.now());
+
+                        // 4. 모든 할 일이 완료되었는지 확인 후 PlannerCompletion 저장
+                        checkAndCompletePlanner(studentId, task.getTaskDate());
                 } else {
                         task.setMentorConfirmed(false);
                         task.setConfirmedAt(null);
@@ -314,6 +317,26 @@ public class MentorTaskService {
                                 task.getId(),
                                 task.isMentorConfirmed(),
                                 task.getConfirmedAt());
+        }
+
+        private void checkAndCompletePlanner(Long menteeId, LocalDate date) {
+                List<Task> allTasks = taskRepository.findAllByMenteeIdAndTaskDate(menteeId, date);
+
+                if (allTasks.isEmpty()) {
+                        return;
+                }
+
+                boolean allConfirmed = allTasks.stream().allMatch(Task::isMentorConfirmed);
+
+                if (allConfirmed) {
+                        if (!plannerCompletionRepository.existsByMenteeIdAndPlanDate(menteeId, date)) {
+                                PlannerCompletion completion = PlannerCompletion.builder()
+                                                .menteeId(menteeId)
+                                                .planDate(date)
+                                                .build();
+                                plannerCompletionRepository.save(completion);
+                        }
+                }
         }
 
 }

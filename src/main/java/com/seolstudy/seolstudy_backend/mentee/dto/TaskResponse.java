@@ -27,8 +27,7 @@ public class TaskResponse {
     private int materialCount;
 
     public static TaskResponse of(Task task, boolean hasSubmission, boolean hasFeedback, int materialCount) {
-        boolean isCompleted = hasSubmission
-                || (!task.isUploadRequired() && task.getStudyTime() != null && task.getStudyTime() > 0);
+        boolean isCompleted = task.isMentorConfirmed();
 
         return TaskResponse.builder()
                 .id(task.getId())

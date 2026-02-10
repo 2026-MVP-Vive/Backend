@@ -26,4 +26,5 @@ public class TaskResponse {
     private boolean isChecked;
     private SubmissionResponse submission;
     private FeedbackResponse feedback;
+    private boolean hasFeedback;
 }

@@ -18,7 +18,7 @@ public class SubmissionResponse {
         return SubmissionResponse.builder()
                 .id(submission.getId())
                 .taskId(submission.getTaskId())
-                .imageUrl("/api/v1/files/" + submission.getFileId())
+                .imageUrl(submission.getFileId() != null ? "/api/v1/files/" + submission.getFileId() : null)
                 .submittedAt(submission.getSubmittedAt())
                 .build();
     }

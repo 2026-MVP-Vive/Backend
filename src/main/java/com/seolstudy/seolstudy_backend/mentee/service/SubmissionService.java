@@ -36,15 +36,19 @@ public class SubmissionService {
             throw new RuntimeException("Submission already exists");
         }
 
-        try {
-            File savedFile = fileService.saveFile(file, File.FileCategory.SUBMISSION, menteeId);
-
-            Submission submission = new Submission(taskId, savedFile.getId());
-            submissionRepository.save(submission);
-
-            return SubmissionResponse.of(submission);
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to save file", e);
+        Long fileId = null;
+        if (file != null && !file.isEmpty()) {
+            try {
+                File savedFile = fileService.saveFile(file, File.FileCategory.SUBMISSION, menteeId);
+                fileId = savedFile.getId();
+            } catch (IOException e) {
+                throw new RuntimeException("Failed to save file", e);
+            }
         }
+
+        Submission submission = new Submission(taskId, fileId);
+        submissionRepository.save(submission);
+
+        return SubmissionResponse.of(submission);
     }
 }

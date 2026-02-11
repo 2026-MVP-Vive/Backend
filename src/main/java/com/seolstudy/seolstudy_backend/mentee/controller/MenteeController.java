@@ -92,7 +92,7 @@ public class MenteeController {
     @PostMapping("/tasks/{taskId}/submission")
     public ResponseEntity<Map<String, Object>> submitTask(
             @PathVariable("taskId") Long taskId,
-            @RequestParam("image") MultipartFile image) {
+            @RequestParam(value = "image", required = false) MultipartFile image) {
         Long menteeId = securityUtil.getCurrentUserId();
         SubmissionResponse response = submissionService.submitTask(menteeId, taskId, image);
 

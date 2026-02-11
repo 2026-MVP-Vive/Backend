@@ -24,7 +24,7 @@ public class Submission {
     @Column(name = "task_id", nullable = false, unique = true)
     private Long taskId;
 
-    @Column(name = "file_id", nullable = false)
+    @Column(name = "file_id", nullable = true)
     private Long fileId;
 
     @CreatedDate

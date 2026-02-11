@@ -115,7 +115,8 @@ public class MentorTaskService {
                             .feedback(feedback == null ? null
                                     : new FeedbackResponse(
                                     feedback.getId(),
-                                    feedback.isImportant()))
+                                    feedback.isImportant(),
+                                    feedback.getContent()))
                             .hasFeedback(hasFeedback)
                             .build();
                 })

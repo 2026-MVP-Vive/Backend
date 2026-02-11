@@ -7,5 +7,4 @@ import lombok.Getter;
 public class FeedbackResponse {
     private Long id;
     private boolean isImportant;
-    private String content;
 }

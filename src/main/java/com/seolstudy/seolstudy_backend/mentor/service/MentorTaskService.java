@@ -86,19 +86,13 @@ public class MentorTaskService {
                 ));
 
         // 3️⃣ TaskResponse 변환
-        // feedback batch 조회
-        var feedbackMap = feedbackRepository.findAllByTaskIdIn(taskIds)
-                .stream()
-                .collect(java.util.stream.Collectors.toMap(
-                        Feedback::getTaskId,
-                        f -> f
-                ));
-
         List<TaskResponse> taskResponses = tasks.stream()
                 .map(task -> {
 
                     Submission submission = submissionMap.get(task.getId());
-                    Feedback feedback = feedbackMap.get(task.getId());
+                    Feedback feedback = feedbackRepository.findByTaskId(task.getId());
+
+                    boolean hasFeedback = feedbackTaskIds.contains(task.getId());
 
                     return TaskResponse.builder()
                             .id(task.getId())
@@ -121,13 +115,11 @@ public class MentorTaskService {
                             .feedback(feedback == null ? null
                                     : new FeedbackResponse(
                                     feedback.getId(),
-                                    feedback.isImportant(),
-                                    feedback.getContent()))
-                            .hasFeedback(feedback != null)
+                                    feedback.isImportant()))
+                            .hasFeedback(hasFeedback)
                             .build();
                 })
                 .toList();
-
 
         // 4️⃣ 하루 플래너 완료 여부
         boolean isCompleted =

@@ -42,6 +42,8 @@ public class SubmissionService {
             Submission submission = new Submission(taskId, savedFile.getId());
             submissionRepository.save(submission);
 
+            task.setMenteeCompleted(true);
+
             return SubmissionResponse.of(submission);
         } catch (IOException e) {
             throw new RuntimeException("Failed to save file", e);
